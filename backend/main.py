@@ -10,10 +10,12 @@ app = FastAPI(
     version="1.0.0",
 )
 
-# CORS 설정
+# CORS 설정 - Vercel 배포 URL 포함
+origins = settings.cors_origins_list
+# Vercel의 프리뷰 배포 URL도 허용
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.cors_origins_list,
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

@@ -49,7 +49,7 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="input-field"
-                placeholder="admin@seah.co.kr"
+                placeholder="admin@pwc.com"
                 required
               />
             </div>
@@ -75,7 +75,7 @@ export default function LoginPage() {
 
           <div className="mt-6 pt-4 border-t border-pwc-gray-200 text-center">
             <p className="text-xs text-pwc-gray-400">
-              테스트 계정: admin@seah.co.kr / admin1234!
+              테스트 계정: admin@pwc.com / admin1234!
             </p>
             <p className="text-xs text-pwc-gray-400 mt-1">
               추후 회사 SSO 인증으로 전환 예정

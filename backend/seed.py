@@ -11,11 +11,20 @@ from auth_utils import hash_password
 DEFAULT_PASSWORD = "admin1234!"
 
 
-def seed_data():
+def seed_data(force=False):
     db = SessionLocal()
-    if db.query(User).first():
-        db.close()
-        return  # 이미 데이터가 있으면 스킵
+    existing = db.query(User).first()
+    if existing and not force:
+        # admin 계정 이메일 확인 - 변경 필요 시 재시딩
+        admin = db.query(User).filter(User.id == 1).first()
+        if admin and admin.email == "admin@pwc.com":
+            db.close()
+            return
+        # admin 이메일이 다르면 전체 재시딩
+        from database import Base, engine
+        Base.metadata.drop_all(bind=engine)
+        Base.metadata.create_all(bind=engine)
+        db = SessionLocal()
 
     # 그룹
     groups = [
@@ -31,7 +40,7 @@ def seed_data():
     hashed = hash_password(DEFAULT_PASSWORD)
     now = datetime.utcnow()
     users = [
-        User(id=1, email="admin@seah.co.kr", name="김관리", company="SeAH", group_id=1, role="admin", status="active", trust_level="high", two_fa=True, hashed_password=hashed, password_expiry=now + timedelta(days=180), last_login=now - timedelta(hours=1)),
+        User(id=1, email="admin@pwc.com", name="김관리", company="PwC", group_id=1, role="admin", status="active", trust_level="high", two_fa=True, hashed_password=hashed, password_expiry=now + timedelta(days=180), last_login=now - timedelta(hours=1)),
         User(id=2, email="park.jm@seah.co.kr", name="박정민", company="SeAH", group_id=1, role="manager", status="active", trust_level="high", two_fa=True, hashed_password=hashed, password_expiry=now + timedelta(days=270), last_login=now - timedelta(days=1)),
         User(id=3, email="lee.sh@seah.co.kr", name="이서현", company="SeAH", group_id=2, role="viewer", status="active", trust_level="normal", two_fa=False, hashed_password=hashed, password_expiry=now + timedelta(days=300), last_login=now - timedelta(days=2)),
         User(id=4, email="choi.yw@posco.co.kr", name="최영우", company="POSCO", group_id=3, role="viewer", status="active", trust_level="normal", two_fa=False, hashed_password=hashed, password_expiry=now + timedelta(days=120), last_login=now - timedelta(days=3)),
