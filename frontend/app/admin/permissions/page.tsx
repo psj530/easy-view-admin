@@ -31,8 +31,8 @@ export default function PermissionsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  const reports = [...new Set(matrixPerms.map((p) => p.report_name))];
-  const roles = [...new Set(matrixPerms.map((p) => p.role))];
+  const reports = Array.from(new Set(matrixPerms.map((p) => p.report_name)));
+  const roles = Array.from(new Set(matrixPerms.map((p) => p.role)));
 
   const loadData = useCallback(async () => {
     setLoading(true);
