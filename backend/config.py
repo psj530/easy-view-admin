@@ -11,6 +11,12 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
     CORS_ORIGINS: str = "http://localhost:3000,http://localhost:5173"
 
+    # SSO 설정 (추후 전환 시 사용)
+    AUTH_PROVIDER: str = "local"  # "local" | "sso"
+    SSO_PROVIDER_URL: str = ""
+    SSO_CLIENT_ID: str = ""
+    SSO_CLIENT_SECRET: str = ""
+
     @property
     def cors_origins_list(self) -> List[str]:
         return [origin.strip() for origin in self.CORS_ORIGINS.split(",")]

@@ -1,66 +1,76 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { permissionsApi } from "../../lib/api";
 import { showToast } from "../../components/Toast";
 
-const reports = [
-  "재무제표 분석",
-  "Tax Compliance",
-  "내부통제 리포트",
-  "비용 분석",
-  "ESG 리포트",
-  "M&A Due Diligence",
-  "Transfer Pricing",
-];
-
-const roles = ["Admin", "Manager", "Editor", "Viewer"];
-
 type PermMatrix = Record<string, Record<string, boolean>>;
-
-function buildInitialMatrix(): PermMatrix {
-  const m: PermMatrix = {};
-  reports.forEach((r) => {
-    m[r] = {};
-    roles.forEach((role) => {
-      if (role === "Admin") m[r][role] = true;
-      else if (role === "Manager") m[r][role] = true;
-      else if (role === "Editor")
-        m[r][role] = [
-          "재무제표 분석",
-          "비용 분석",
-          "Tax Compliance",
-        ].includes(r);
-      else
-        m[r][role] = ["재무제표 분석", "비용 분석"].includes(r);
-    });
-  });
-  return m;
-}
-
-const detailPerms = ["열람", "다운로드", "인쇄", "공유", "코멘트"];
-
 type DetailMatrix = Record<string, Record<string, boolean>>;
 
-function buildDetailMatrix(): DetailMatrix {
-  const m: DetailMatrix = {};
-  roles.forEach((role) => {
-    m[role] = {};
-    detailPerms.forEach((p) => {
-      if (role === "Admin") m[role][p] = true;
-      else if (role === "Manager") m[role][p] = p !== "인쇄" || true;
-      else if (role === "Editor")
-        m[role][p] = ["열람", "코멘트", "다운로드"].includes(p);
-      else m[role][p] = p === "열람";
-    });
-  });
-  return m;
-}
-
 export default function PermissionsPage() {
-  const [matrix, setMatrix] = useState<PermMatrix>(buildInitialMatrix);
-  const [detailMatrix, setDetailMatrix] = useState<DetailMatrix>(
-    buildDetailMatrix
-  );
+  const [matrix, setMatrix] = useState<PermMatrix>({});
+  const [detailMatrix, setDetailMatrix] = useState<DetailMatrix>({});
+  const [reports, setReports] = useState<string[]>([]);
+  const [roles, setRoles] = useState<string[]>([]);
+  const [detailPerms, setDetailPerms] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  const loadMatrix = useCallback(async () => {
+    try {
+      const res = await permissionsApi.matrix();
+      const perms: any[] = res.permissions || [];
+      const reportSet = new Set<string>();
+      const roleSet = new Set<string>();
+      const m: PermMatrix = {};
+
+      perms.forEach((p: any) => {
+        reportSet.add(p.report_name);
+        roleSet.add(p.role);
+        if (!m[p.report_name]) m[p.report_name] = {};
+        m[p.report_name][p.role] = !!p.has_access;
+      });
+
+      setReports(Array.from(reportSet));
+      setRoles(Array.from(roleSet));
+      setMatrix(m);
+    } catch {
+      showToast("권한 매트릭스를 불러오지 못했습니다.", "error");
+    }
+  }, []);
+
+  const loadDetail = useCallback(async () => {
+    try {
+      const res = await permissionsApi.detail();
+      const perms: any[] = res.permissions || [];
+      const roleSet = new Set<string>();
+      const permSet = new Set<string>();
+      const m: DetailMatrix = {};
+
+      perms.forEach((p: any) => {
+        roleSet.add(p.role);
+        permSet.add(p.permission);
+        if (!m[p.role]) m[p.role] = {};
+        m[p.role][p.permission] = !!p.enabled;
+      });
+
+      // Only update roles if we didn't get them from matrix yet
+      if (roles.length === 0) setRoles(Array.from(roleSet));
+      setDetailPerms(Array.from(permSet));
+      setDetailMatrix(m);
+    } catch {
+      showToast("상세 권한을 불러오지 못했습니다.", "error");
+    }
+  }, [roles.length]);
+
+  useEffect(() => {
+    const init = async () => {
+      setLoading(true);
+      await Promise.all([loadMatrix(), loadDetail()]);
+      setLoading(false);
+    };
+    init();
+  }, [loadMatrix, loadDetail]);
 
   const toggleCell = (report: string, role: string) => {
     setMatrix((prev) => ({
@@ -73,7 +83,7 @@ export default function PermissionsPage() {
   };
 
   const toggleColumnAll = (role: string) => {
-    const allChecked = reports.every((r) => matrix[r][role]);
+    const allChecked = reports.every((r) => matrix[r]?.[role]);
     setMatrix((prev) => {
       const next = { ...prev };
       reports.forEach((r) => {
@@ -93,9 +103,52 @@ export default function PermissionsPage() {
     }));
   };
 
-  const handleSave = () => {
-    showToast("권한 설정이 저장되었습니다.", "success");
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      // Build matrix permissions array
+      const matrixPerms: any[] = [];
+      reports.forEach((report) => {
+        roles.forEach((role) => {
+          matrixPerms.push({
+            report_name: report,
+            role,
+            has_access: !!matrix[report]?.[role],
+          });
+        });
+      });
+
+      // Build detail permissions array
+      const detailPermsArr: any[] = [];
+      roles.forEach((role) => {
+        detailPerms.forEach((perm) => {
+          detailPermsArr.push({
+            role,
+            permission: perm,
+            enabled: !!detailMatrix[role]?.[perm],
+          });
+        });
+      });
+
+      await Promise.all([
+        permissionsApi.updateMatrix(matrixPerms),
+        permissionsApi.updateDetail(detailPermsArr),
+      ]);
+      showToast("권한 설정이 저장되었습니다.", "success");
+    } catch {
+      showToast("권한 설정 저장에 실패했습니다.", "error");
+    } finally {
+      setSaving(false);
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-pwc-gray-500">로딩 중...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -109,8 +162,8 @@ export default function PermissionsPage() {
             역할별 리포트 접근 권한과 상세 기능 권한을 관리합니다.
           </p>
         </div>
-        <button onClick={handleSave} className="btn-primary">
-          변경사항 저장
+        <button onClick={handleSave} disabled={saving} className="btn-primary">
+          {saving ? "저장 중..." : "변경사항 저장"}
         </button>
       </div>
 
@@ -132,7 +185,7 @@ export default function PermissionsPage() {
                   리포트
                 </th>
                 {roles.map((role) => {
-                  const allChecked = reports.every((r) => matrix[r][role]);
+                  const allChecked = reports.every((r) => matrix[r]?.[role]);
                   return (
                     <th
                       key={role}

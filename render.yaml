@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: easyview-admin-api
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: free
+    envVars:
+      - key: DATABASE_URL
+        value: sqlite:///./easyview.db
+      - key: SECRET_KEY
+        generateValue: true
+      - key: CORS_ORIGINS
+        value: https://easy-view-admin.vercel.app
+      - key: AUTH_PROVIDER
+        value: local
+    healthCheckPath: /api/health

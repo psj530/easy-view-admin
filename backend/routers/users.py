@@ -1,257 +1,150 @@
-from fastapi import APIRouter, HTTPException, Query
-from schemas.user import UserCreate, UserUpdate, UserResponse, UserListResponse
+from fastapi import APIRouter, HTTPException, Query, Depends
+from sqlalchemy.orm import Session
+from sqlalchemy import or_
 from typing import Optional
+from datetime import datetime, timedelta
+from database import get_db
+from models.user import User
+from models.audit import AuditLog
+from schemas.user import UserCreate, UserUpdate, UserResponse, UserListResponse
+from auth_utils import hash_password, get_current_user
 
 router = APIRouter(prefix="/api/users", tags=["사용자 관리"])
-
-# Mock 사용자 데이터
-MOCK_USERS = [
-    {
-        "id": 1,
-        "email": "admin@seah.co.kr",
-        "name": "김관리",
-        "company": "SeAH",
-        "group_id": 1,
-        "role": "admin",
-        "status": "active",
-        "trust_level": "high",
-        "two_fa": True,
-        "password_expiry": "2026-06-01",
-        "last_login": "2026-04-16 09:30:00",
-        "created_at": "2025-01-15",
-    },
-    {
-        "id": 2,
-        "email": "park.jm@seah.co.kr",
-        "name": "박정민",
-        "company": "SeAH",
-        "group_id": 1,
-        "role": "manager",
-        "status": "active",
-        "trust_level": "high",
-        "two_fa": True,
-        "password_expiry": "2026-07-15",
-        "last_login": "2026-04-15 14:22:00",
-        "created_at": "2025-02-10",
-    },
-    {
-        "id": 3,
-        "email": "lee.sh@seah.co.kr",
-        "name": "이서현",
-        "company": "SeAH",
-        "group_id": 2,
-        "role": "viewer",
-        "status": "active",
-        "trust_level": "normal",
-        "two_fa": False,
-        "password_expiry": "2026-08-20",
-        "last_login": "2026-04-14 11:05:00",
-        "created_at": "2025-03-05",
-    },
-    {
-        "id": 4,
-        "email": "choi.yw@posco.co.kr",
-        "name": "최영우",
-        "company": "POSCO",
-        "group_id": 3,
-        "role": "viewer",
-        "status": "active",
-        "trust_level": "normal",
-        "two_fa": False,
-        "password_expiry": "2026-05-10",
-        "last_login": "2026-04-13 16:45:00",
-        "created_at": "2025-04-20",
-    },
-    {
-        "id": 5,
-        "email": "jung.ms@posco.co.kr",
-        "name": "정민수",
-        "company": "POSCO",
-        "group_id": 3,
-        "role": "manager",
-        "status": "active",
-        "trust_level": "high",
-        "two_fa": True,
-        "password_expiry": "2026-09-01",
-        "last_login": "2026-04-16 08:10:00",
-        "created_at": "2025-01-20",
-    },
-    {
-        "id": 6,
-        "email": "han.jh@seah.co.kr",
-        "name": "한지혜",
-        "company": "SeAH",
-        "group_id": 2,
-        "role": "viewer",
-        "status": "inactive",
-        "trust_level": "low",
-        "two_fa": False,
-        "password_expiry": "2026-03-01",
-        "last_login": "2026-02-28 09:00:00",
-        "created_at": "2025-05-15",
-    },
-    {
-        "id": 7,
-        "email": "yoon.dk@seah.co.kr",
-        "name": "윤대경",
-        "company": "SeAH",
-        "group_id": 1,
-        "role": "viewer",
-        "status": "active",
-        "trust_level": "normal",
-        "two_fa": False,
-        "password_expiry": "2026-10-15",
-        "last_login": "2026-04-15 17:30:00",
-        "created_at": "2025-06-01",
-    },
-    {
-        "id": 8,
-        "email": "kim.hs@posco.co.kr",
-        "name": "김현수",
-        "company": "POSCO",
-        "group_id": 4,
-        "role": "viewer",
-        "status": "pending",
-        "trust_level": "normal",
-        "two_fa": False,
-        "password_expiry": None,
-        "last_login": None,
-        "created_at": "2026-04-10",
-    },
-    {
-        "id": 9,
-        "email": "song.yr@seah.co.kr",
-        "name": "송유라",
-        "company": "SeAH",
-        "group_id": 2,
-        "role": "manager",
-        "status": "active",
-        "trust_level": "high",
-        "two_fa": True,
-        "password_expiry": "2026-11-01",
-        "last_login": "2026-04-16 10:15:00",
-        "created_at": "2025-02-28",
-    },
-    {
-        "id": 10,
-        "email": "oh.jw@posco.co.kr",
-        "name": "오진우",
-        "company": "POSCO",
-        "group_id": 4,
-        "role": "viewer",
-        "status": "active",
-        "trust_level": "normal",
-        "two_fa": False,
-        "password_expiry": "2026-12-01",
-        "last_login": "2026-04-12 13:40:00",
-        "created_at": "2025-07-10",
-    },
-]
 
 
 @router.get("", response_model=UserListResponse)
 async def get_users(
-    search: Optional[str] = Query(None, description="검색어 (이름, 이메일)"),
-    company: Optional[str] = Query(None, description="회사 필터"),
-    role: Optional[str] = Query(None, description="역할 필터"),
-    status: Optional[str] = Query(None, description="상태 필터"),
+    search: Optional[str] = Query(None),
+    company: Optional[str] = Query(None),
+    role: Optional[str] = Query(None),
+    status: Optional[str] = Query(None),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     """사용자 목록 조회"""
-    filtered = MOCK_USERS.copy()
-
+    query = db.query(User)
     if search:
-        search_lower = search.lower()
-        filtered = [
-            u for u in filtered
-            if search_lower in u["name"].lower() or search_lower in u["email"].lower()
-        ]
+        query = query.filter(or_(User.name.ilike(f"%{search}%"), User.email.ilike(f"%{search}%")))
     if company:
-        filtered = [u for u in filtered if u["company"] == company]
+        query = query.filter(User.company == company)
     if role:
-        filtered = [u for u in filtered if u["role"] == role]
+        query = query.filter(User.role == role)
     if status:
-        filtered = [u for u in filtered if u["status"] == status]
+        query = query.filter(User.status == status)
 
-    return UserListResponse(users=filtered, total=len(filtered))
+    users = query.order_by(User.id).all()
+    user_list = []
+    for u in users:
+        user_list.append({
+            "id": u.id, "email": u.email, "name": u.name, "company": u.company,
+            "group_id": u.group_id, "role": u.role, "status": u.status,
+            "trust_level": u.trust_level, "two_fa": u.two_fa,
+            "password_expiry": str(u.password_expiry) if u.password_expiry else None,
+            "last_login": str(u.last_login) if u.last_login else None,
+            "created_at": str(u.created_at) if u.created_at else None,
+        })
+    return UserListResponse(users=user_list, total=len(user_list))
 
 
 @router.post("", response_model=UserResponse, status_code=201)
-async def create_user(user: UserCreate):
+async def create_user(
+    user: UserCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     """사용자 생성"""
-    new_id = max(u["id"] for u in MOCK_USERS) + 1
-    new_user = {
-        "id": new_id,
-        "email": user.email,
-        "name": user.name,
-        "company": user.company,
-        "group_id": user.group_id,
-        "role": user.role,
-        "status": "active",
-        "trust_level": "normal",
-        "two_fa": False,
-        "password_expiry": "2027-04-16",
-        "last_login": None,
-        "created_at": "2026-04-16",
-    }
-    MOCK_USERS.append(new_user)
-    return new_user
+    existing = db.query(User).filter(User.email == user.email).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="이미 등록된 이메일입니다.")
+
+    new_user = User(
+        email=user.email, name=user.name, company=user.company,
+        group_id=user.group_id, role=user.role, status="active",
+        hashed_password=hash_password(user.password) if user.password else None,
+        password_expiry=datetime.utcnow() + timedelta(days=365),
+    )
+    db.add(new_user)
+    db.add(AuditLog(actor=current_user.name, action_type="사용자 생성", detail=f"{user.name} ({user.email}) 사용자 생성", target=user.name))
+    db.commit()
+    db.refresh(new_user)
+    return _user_to_response(new_user)
 
 
 @router.get("/{user_id}", response_model=UserResponse)
-async def get_user(user_id: int):
+async def get_user(user_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     """사용자 상세 조회"""
-    user = next((u for u in MOCK_USERS if u["id"] == user_id), None)
+    user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="사용자를 찾을 수 없습니다.")
-    return user
+    return _user_to_response(user)
 
 
 @router.put("/{user_id}", response_model=UserResponse)
-async def update_user(user_id: int, user_update: UserUpdate):
+async def update_user(user_id: int, user_update: UserUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     """사용자 정보 수정"""
-    user = next((u for u in MOCK_USERS if u["id"] == user_id), None)
+    user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="사용자를 찾을 수 없습니다.")
 
     update_data = user_update.model_dump(exclude_unset=True)
     for key, value in update_data.items():
-        if key in user:
-            user[key] = value
-    return user
+        setattr(user, key, value)
+    db.add(AuditLog(actor=current_user.name, action_type="사용자 수정", detail=f"{user.name} 사용자 정보 수정", target=user.name))
+    db.commit()
+    db.refresh(user)
+    return _user_to_response(user)
 
 
 @router.delete("/{user_id}")
-async def delete_user(user_id: int):
+async def delete_user(user_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     """사용자 삭제"""
-    global MOCK_USERS
-    user = next((u for u in MOCK_USERS if u["id"] == user_id), None)
+    user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="사용자를 찾을 수 없습니다.")
-    MOCK_USERS = [u for u in MOCK_USERS if u["id"] != user_id]
-    return {"message": f"사용자 '{user['name']}'이(가) 삭제되었습니다."}
+    name = user.name
+    db.delete(user)
+    db.add(AuditLog(actor=current_user.name, action_type="사용자 삭제", detail=f"{name} 사용자 삭제", target=name))
+    db.commit()
+    return {"message": f"사용자 '{name}'이(가) 삭제되었습니다."}
 
 
 @router.post("/{user_id}/reset-password")
-async def reset_password(user_id: int):
+async def reset_password(user_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     """비밀번호 초기화"""
-    user = next((u for u in MOCK_USERS if u["id"] == user_id), None)
+    user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="사용자를 찾을 수 없습니다.")
-    return {"message": f"'{user['name']}' 사용자의 비밀번호가 초기화되었습니다. 임시 비밀번호가 이메일로 발송됩니다."}
+    user.hashed_password = hash_password("temp1234!")
+    user.password_expiry = datetime.utcnow() + timedelta(days=1)
+    db.add(AuditLog(actor=current_user.name, action_type="비밀번호 초기화", detail=f"{user.name} 사용자 비밀번호 초기화", target=user.name))
+    db.commit()
+    return {"message": f"'{user.name}' 사용자의 비밀번호가 초기화되었습니다."}
 
 
 @router.post("/{user_id}/toggle-status")
-async def toggle_status(user_id: int):
-    """사용자 상태 토글 (활성/비활성)"""
-    user = next((u for u in MOCK_USERS if u["id"] == user_id), None)
+async def toggle_status(user_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """사용자 상태 토글"""
+    user = db.query(User).filter(User.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="사용자를 찾을 수 없습니다.")
 
-    if user["status"] == "active":
-        user["status"] = "inactive"
+    if user.status == "active":
+        user.status = "inactive"
         msg = "비활성화"
     else:
-        user["status"] = "active"
+        user.status = "active"
         msg = "활성화"
+    db.add(AuditLog(actor=current_user.name, action_type=f"사용자 {msg}", detail=f"{user.name} 사용자 {msg} 처리", target=user.name))
+    db.commit()
+    return {"message": f"'{user.name}' 사용자가 {msg}되었습니다.", "status": user.status}
 
-    return {"message": f"'{user['name']}' 사용자가 {msg}되었습니다.", "status": user["status"]}
+
+def _user_to_response(user: User) -> dict:
+    return {
+        "id": user.id, "email": user.email, "name": user.name, "company": user.company,
+        "group_id": user.group_id, "role": user.role, "status": user.status,
+        "trust_level": user.trust_level, "two_fa": user.two_fa,
+        "password_expiry": str(user.password_expiry) if user.password_expiry else None,
+        "last_login": str(user.last_login) if user.last_login else None,
+        "created_at": str(user.created_at) if user.created_at else None,
+    }

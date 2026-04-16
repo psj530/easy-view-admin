@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from config import settings
+from database import init_db
 from routers import auth, users, groups, permissions, requests, audit
 
 app = FastAPI(
@@ -30,6 +31,9 @@ app.include_router(audit.router)
 @app.on_event("startup")
 async def startup_event():
     """애플리케이션 시작 이벤트"""
+    init_db()
+    from seed import seed_data
+    seed_data()
     print("EasyView Admin API 서버가 시작되었습니다.")
 
 

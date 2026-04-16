@@ -3,10 +3,11 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from config import settings
 
-engine = create_engine(
-    settings.DATABASE_URL,
-    connect_args={"check_same_thread": False} if "sqlite" in settings.DATABASE_URL else {},
-)
+connect_args = {}
+if "sqlite" in settings.DATABASE_URL:
+    connect_args["check_same_thread"] = False
+
+engine = create_engine(settings.DATABASE_URL, connect_args=connect_args)
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
@@ -20,3 +21,9 @@ def get_db():
         yield db
     finally:
         db.close()
+
+
+def init_db():
+    """테이블 생성"""
+    import models  # noqa: F401
+    Base.metadata.create_all(bind=engine)

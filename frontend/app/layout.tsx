@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import Header from "./components/Header";
 import ToastContainer from "./components/Toast";
+import { AuthProvider } from "./lib/auth";
 
 export const metadata: Metadata = {
   title: "Easy View - Digital Finance Portal",
@@ -16,9 +17,11 @@ export default function RootLayout({
   return (
     <html lang="ko">
       <body className="font-sans">
-        <Header />
-        {children}
-        <ToastContainer />
+        <AuthProvider>
+          <Header />
+          {children}
+          <ToastContainer />
+        </AuthProvider>
       </body>
     </html>
   );

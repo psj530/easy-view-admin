@@ -1,6 +1,11 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
-from typing import Optional
+from sqlalchemy.orm import Session
+from datetime import datetime
+from database import get_db
+from models.user import User
+from models.audit import AuditLog
+from auth_utils import verify_password, create_access_token, get_current_user
 
 router = APIRouter(prefix="/api/auth", tags=["인증"])
 
@@ -16,39 +21,35 @@ class LoginResponse(BaseModel):
     user: dict
 
 
-class MeResponse(BaseModel):
-    id: int
-    email: str
-    name: str
-    company: str
-    role: str
-
-
-# 현재 로그인된 사용자 (Mock)
-CURRENT_USER = {
-    "id": 1,
-    "email": "admin@seah.co.kr",
-    "name": "김관리",
-    "company": "SeAH",
-    "role": "admin",
-    "group_id": 1,
-    "status": "active",
-    "trust_level": "high",
-    "two_fa": True,
-}
-
-
 @router.post("/login", response_model=LoginResponse)
-async def login(request: LoginRequest):
-    """로그인 처리"""
-    # Mock: 이메일/비밀번호 검증 없이 토큰 발급
-    if request.email and request.password:
-        return LoginResponse(
-            access_token="mock-jwt-token-for-prototype",
-            token_type="bearer",
-            user=CURRENT_USER,
-        )
-    raise HTTPException(status_code=401, detail="이메일 또는 비밀번호가 올바르지 않습니다.")
+async def login(request: LoginRequest, db: Session = Depends(get_db)):
+    """로그인 처리 - SSO 전환 시 이 엔드포인트를 SSO 콜백으로 대체"""
+    user = db.query(User).filter(User.email == request.email).first()
+    if not user or not user.hashed_password:
+        raise HTTPException(status_code=401, detail="이메일 또는 비밀번호가 올바르지 않습니다.")
+    if not verify_password(request.password, user.hashed_password):
+        raise HTTPException(status_code=401, detail="이메일 또는 비밀번호가 올바르지 않습니다.")
+
+    user.last_login = datetime.utcnow()
+    db.add(AuditLog(actor=user.name, action_type="로그인", detail=f"{user.role} 로그인 성공", target="-", ip_address="0.0.0.0"))
+    db.commit()
+
+    token = create_access_token(data={"sub": str(user.id), "email": user.email, "role": user.role})
+    return LoginResponse(
+        access_token=token,
+        token_type="bearer",
+        user={
+            "id": user.id,
+            "email": user.email,
+            "name": user.name,
+            "company": user.company,
+            "role": user.role,
+            "group_id": user.group_id,
+            "status": user.status,
+            "trust_level": user.trust_level,
+            "two_fa": user.two_fa,
+        },
+    )
 
 
 @router.post("/logout")
@@ -58,6 +59,16 @@ async def logout():
 
 
 @router.get("/me")
-async def get_current_user():
+async def get_me(current_user: User = Depends(get_current_user)):
     """현재 로그인 사용자 정보 조회"""
-    return CURRENT_USER
+    return {
+        "id": current_user.id,
+        "email": current_user.email,
+        "name": current_user.name,
+        "company": current_user.company,
+        "role": current_user.role,
+        "group_id": current_user.group_id,
+        "status": current_user.status,
+        "trust_level": current_user.trust_level,
+        "two_fa": current_user.two_fa,
+    }

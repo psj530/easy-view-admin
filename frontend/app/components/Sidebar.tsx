@@ -19,7 +19,7 @@ const sidebarItems: SidebarItem[] = [
   { label: "그룹 관리", href: "/admin/groups", dotColor: "bg-indigo-500" },
   {
     label: "PwC 내부 사용자",
-    href: "/admin/internal",
+    href: "/admin/pwc-users",
     dotColor: "bg-purple-500",
   },
   {

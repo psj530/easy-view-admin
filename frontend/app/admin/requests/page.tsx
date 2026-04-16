@@ -1,121 +1,96 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { requestsApi } from "../../lib/api";
 import { showToast } from "../../components/Toast";
 
 interface Request {
   id: number;
-  name: string;
-  email: string;
-  company: string;
-  group: string;
-  requestDate: string;
+  requestNo: string;
   requestedBy: string;
-  status: "pending" | "approved" | "rejected";
+  requestedByAvatar: string;
+  targetName: string;
+  targetEmail: string;
   reason: string;
+  requestDate: string;
+  status: "pending" | "approved" | "rejected";
 }
 
-const initialRequests: Request[] = [
-  {
-    id: 1,
-    name: "강하늘",
-    email: "hn.kang@samsung.com",
-    company: "삼성전자",
-    group: "Finance",
-    requestDate: "2026-04-16",
-    requestedBy: "김민수",
-    status: "pending",
-    reason: "신규 프로젝트 참여를 위한 접근 권한 필요",
-  },
-  {
-    id: 2,
-    name: "오지영",
-    email: "jy.oh@lgcns.com",
-    company: "LG CNS",
-    group: "Tax",
-    requestDate: "2026-04-15",
-    requestedBy: "이서연",
-    status: "pending",
-    reason: "Tax Compliance 리포트 열람 필요",
-  },
-  {
-    id: 3,
-    name: "배수진",
-    email: "sj.bae@hyundai.com",
-    company: "현대자동차",
-    group: "Advisory",
-    requestDate: "2026-04-14",
-    requestedBy: "최유진",
-    status: "pending",
-    reason: "ESG 리포트 분석 업무 배정",
-  },
-  {
-    id: 4,
-    name: "문현식",
-    email: "hs.moon@skgroup.com",
-    company: "SK그룹",
-    group: "Consulting",
-    requestDate: "2026-04-13",
-    requestedBy: "박준형",
-    status: "approved",
-    reason: "비용 분석 프로젝트 참여",
-  },
-  {
-    id: 5,
-    name: "권도윤",
-    email: "dy.kwon@posco.com",
-    company: "포스코",
-    group: "Finance",
-    requestDate: "2026-04-12",
-    requestedBy: "정다은",
-    status: "rejected",
-    reason: "내부통제 리포트 접근 필요 - 권한 부족으로 반려",
-  },
-];
-
 export default function RequestsPage() {
-  const [requests, setRequests] = useState<Request[]>(initialRequests);
+  const [requests, setRequests] = useState<Request[]>([]);
+  const [total, setTotal] = useState(0);
   const [filter, setFilter] = useState<"all" | "pending" | "approved" | "rejected">("all");
+  const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState<number | null>(null);
 
-  const filtered =
-    filter === "all"
-      ? requests
-      : requests.filter((r) => r.status === filter);
+  const fetchRequests = useCallback(async () => {
+    try {
+      setLoading(true);
+      const params: Record<string, string> = {};
+      if (filter !== "all") params.status = filter;
+      if (search) params.search = search;
+      const data = await requestsApi.list(params);
+      setRequests(data.requests);
+      setTotal(data.total);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "목록을 불러오지 못했습니다.";
+      showToast(message, "error");
+    } finally {
+      setLoading(false);
+    }
+  }, [filter, search]);
+
+  useEffect(() => {
+    fetchRequests();
+  }, [fetchRequests]);
 
   const pendingCount = requests.filter((r) => r.status === "pending").length;
 
-  const approveRequest = (id: number) => {
-    setRequests((prev) =>
-      prev.map((r) => {
-        if (r.id === id) {
-          showToast(`${r.name}님의 신청이 승인되었습니다.`, "success");
-          return { ...r, status: "approved" as const };
-        }
-        return r;
-      })
-    );
+  const approveRequest = async (id: number) => {
+    const req = requests.find((r) => r.id === id);
+    try {
+      setActionLoading(id);
+      await requestsApi.approve(id);
+      showToast(`${req?.targetName ?? ""}님의 신청이 승인되었습니다.`, "success");
+      await fetchRequests();
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "승인 처리에 실패했습니다.";
+      showToast(message, "error");
+    } finally {
+      setActionLoading(null);
+    }
   };
 
-  const rejectRequest = (id: number) => {
-    setRequests((prev) =>
-      prev.map((r) => {
-        if (r.id === id) {
-          showToast(`${r.name}님의 신청이 반려되었습니다.`, "warning");
-          return { ...r, status: "rejected" as const };
-        }
-        return r;
-      })
-    );
+  const rejectRequest = async (id: number) => {
+    const req = requests.find((r) => r.id === id);
+    try {
+      setActionLoading(id);
+      await requestsApi.reject(id);
+      showToast(`${req?.targetName ?? ""}님의 신청이 반려되었습니다.`, "warning");
+      await fetchRequests();
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "반려 처리에 실패했습니다.";
+      showToast(message, "error");
+    } finally {
+      setActionLoading(null);
+    }
   };
 
   const statusBadge = (status: string) => {
     const map: Record<string, { cls: string; label: string }> = {
-      pending: { cls: "badge-pending", label: "대기" },
-      approved: { cls: "badge-active", label: "승인" },
-      rejected: { cls: "badge-locked", label: "반려" },
+      pending: { cls: "bg-yellow-100 text-yellow-700", label: "대기" },
+      approved: { cls: "bg-green-100 text-green-700", label: "승인" },
+      rejected: { cls: "bg-red-100 text-red-700", label: "반려" },
     };
     const s = map[status];
-    return s ? <span className={s.cls}>{s.label}</span> : null;
+    return s ? (
+      <span
+        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${s.cls}`}
+      >
+        {s.label}
+      </span>
+    ) : null;
   };
 
   return (
@@ -161,62 +136,118 @@ export default function RequestsPage() {
         ))}
       </div>
 
-      {/* Request Cards */}
-      <div className="space-y-4">
-        {filtered.map((req) => (
-          <div
-            key={req.id}
-            className="card hover:shadow-md transition-shadow"
-          >
-            <div className="flex items-start justify-between">
-              <div className="flex items-start gap-4">
-                <div className="w-10 h-10 rounded-full bg-pwc-orange flex items-center justify-center text-white font-medium flex-shrink-0">
-                  {req.name[0]}
-                </div>
-                <div>
-                  <div className="flex items-center gap-3 mb-1">
-                    <h3 className="font-semibold text-pwc-black">
-                      {req.name}
-                    </h3>
-                    {statusBadge(req.status)}
-                  </div>
-                  <p className="text-sm text-pwc-gray-500">{req.email}</p>
-                  <div className="flex items-center gap-4 mt-2 text-xs text-pwc-gray-500">
-                    <span>회사: {req.company}</span>
-                    <span>그룹: {req.group}</span>
-                    <span>신청자: {req.requestedBy}</span>
-                    <span>신청일: {req.requestDate}</span>
-                  </div>
-                  <p className="text-sm text-pwc-gray-600 mt-2 bg-pwc-gray-50 px-3 py-2 rounded">
-                    {req.reason}
-                  </p>
-                </div>
-              </div>
-
-              {req.status === "pending" && (
-                <div className="flex gap-2 flex-shrink-0 ml-4">
-                  <button
-                    onClick={() => approveRequest(req.id)}
-                    className="text-sm bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
-                  >
-                    승인
-                  </button>
-                  <button
-                    onClick={() => rejectRequest(req.id)}
-                    className="text-sm bg-red-100 text-red-700 px-4 py-2 rounded-lg hover:bg-red-200 transition-colors"
-                  >
-                    반려
-                  </button>
-                </div>
-              )}
+      {/* Table */}
+      <div className="card overflow-hidden p-0">
+        <div className="px-6 py-3 border-b border-pwc-gray-200 bg-pwc-gray-50">
+          <span className="text-sm text-pwc-gray-600">
+            총 {total}건
+          </span>
+        </div>
+        <div className="overflow-x-auto">
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pwc-orange"></div>
             </div>
-          </div>
-        ))}
-        {filtered.length === 0 && (
-          <div className="card text-center py-12 text-pwc-gray-400">
-            해당 조건의 신청 내역이 없습니다.
-          </div>
-        )}
+          ) : (
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-pwc-gray-200 bg-pwc-gray-50">
+                <th className="text-left py-3 px-6 font-medium text-pwc-gray-500">
+                  신청번호
+                </th>
+                <th className="text-left py-3 px-4 font-medium text-pwc-gray-500">
+                  신청자
+                </th>
+                <th className="text-left py-3 px-4 font-medium text-pwc-gray-500">
+                  추가 대상
+                </th>
+                <th className="text-left py-3 px-4 font-medium text-pwc-gray-500">
+                  대상 이메일
+                </th>
+                <th className="text-left py-3 px-4 font-medium text-pwc-gray-500">
+                  사유
+                </th>
+                <th className="text-left py-3 px-4 font-medium text-pwc-gray-500">
+                  신청일
+                </th>
+                <th className="text-left py-3 px-4 font-medium text-pwc-gray-500">
+                  상태
+                </th>
+                <th className="text-left py-3 px-4 font-medium text-pwc-gray-500">
+                  처리
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {requests.map((req) => (
+                <tr
+                  key={req.id}
+                  className="border-b border-pwc-gray-100 hover:bg-pwc-gray-50 transition-colors"
+                >
+                  <td className="py-3 px-6 font-mono text-xs text-pwc-gray-600">
+                    {req.requestNo}
+                  </td>
+                  <td className="py-3 px-4">
+                    <div className="flex items-center gap-2">
+                      <div className="w-7 h-7 rounded-full bg-pwc-orange flex items-center justify-center text-white text-xs font-medium flex-shrink-0">
+                        {req.requestedByAvatar}
+                      </div>
+                      <span className="font-medium text-pwc-black">
+                        {req.requestedBy}
+                      </span>
+                    </div>
+                  </td>
+                  <td className="py-3 px-4 text-pwc-gray-700">
+                    {req.targetName}
+                  </td>
+                  <td className="py-3 px-4 text-pwc-gray-500 text-xs">
+                    {req.targetEmail}
+                  </td>
+                  <td className="py-3 px-4 text-pwc-gray-600 max-w-[200px] truncate">
+                    {req.reason}
+                  </td>
+                  <td className="py-3 px-4 text-pwc-gray-500">
+                    {req.requestDate}
+                  </td>
+                  <td className="py-3 px-4">{statusBadge(req.status)}</td>
+                  <td className="py-3 px-4">
+                    {req.status === "pending" ? (
+                      <div className="flex gap-1">
+                        <button
+                          onClick={() => approveRequest(req.id)}
+                          disabled={actionLoading === req.id}
+                          className="text-xs bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 transition-colors disabled:opacity-50"
+                        >
+                          {actionLoading === req.id ? "..." : "승인"}
+                        </button>
+                        <button
+                          onClick={() => rejectRequest(req.id)}
+                          disabled={actionLoading === req.id}
+                          className="text-xs bg-red-100 text-red-700 px-3 py-1 rounded hover:bg-red-200 transition-colors disabled:opacity-50"
+                        >
+                          {actionLoading === req.id ? "..." : "반려"}
+                        </button>
+                      </div>
+                    ) : (
+                      <span className="text-xs text-pwc-gray-400">처리 완료</span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+              {requests.length === 0 && (
+                <tr>
+                  <td
+                    colSpan={8}
+                    className="py-12 text-center text-pwc-gray-400"
+                  >
+                    해당 조건의 신청 내역이 없습니다.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+          )}
+        </div>
       </div>
     </div>
   );
