@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Easy View - Managed Registration</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', 'Malgun Gothic', sans-serif; background: #fff; color: #333; font-size: 14px; min-height: 100vh; display: flex; flex-direction: column; }
+
+        /* ── Header ── */
+        .header { display: flex; align-items: center; justify-content: space-between; height: 50px; padding: 0 28px; border-bottom: 3px solid #d04a02; background: #fff; }
+        .header-logo { display: flex; align-items: center; gap: 10px; }
+        .header-logo .pwc { font-size: 20px; font-weight: 800; color: #d04a02; font-style: italic; letter-spacing: -0.5px; }
+        .header-logo .title { font-size: 16px; color: #2d2d2d; font-weight: 400; }
+        .header-nav { display: flex; gap: 0; }
+        .header-nav a { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 20px; text-decoration: none; color: #464646; font-size: 12px; font-weight: 500; transition: color 0.15s; cursor: pointer; }
+        .header-nav a .nav-icon { font-size: 18px; }
+        .header-nav a:hover { color: #d04a02; }
+        .header-nav a.active { color: #d04a02; }
+
+        /* ── Orange Banner ── */
+        .orange-banner { background: #d04a02; color: #fff; padding: 12px 28px; font-size: 13px; display: none; align-items: center; justify-content: space-between; }
+        .orange-banner.show { display: flex; }
+        .orange-banner .close-banner { background: none; border: none; color: #fff; font-size: 20px; cursor: pointer; padding: 0 8px; }
+
+        /* ── Main ── */
+        .main { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 40px 28px; }
+
+        /* ── Footer ── */
+        .footer { padding: 16px 28px; border-top: 1px solid #e8e8e8; font-size: 11px; color: #777; margin-top: auto; }
+        .footer .copyright { margin-bottom: 8px; }
+        .footer-links { display: flex; gap: 4px; flex-wrap: wrap; }
+        .footer-links a { color: #d04a02; text-decoration: none; font-size: 11px; }
+        .footer-links a:hover { text-decoration: underline; }
+        .footer-links span { color: #ccc; }
+
+        /* ── Page Containers ── */
+        .page { display: none; width: 100%; max-width: 960px; }
+        .page.active { display: block; }
+
+        /* ── Home Page ── */
+        .user-badge { display: inline-flex; align-items: center; gap: 6px; border: 1px solid #ddd; border-radius: 4px; padding: 6px 16px; font-size: 14px; color: #333; margin-bottom: 16px; }
+        .user-badge .icon { color: #d04a02; font-size: 16px; }
+        .home-title { font-size: 22px; color: #333; font-weight: 400; margin-bottom: 40px; }
+        .home-cards { display: flex; justify-content: center; gap: 48px; }
+        .home-card { width: 180px; height: 140px; border: 1px solid #ddd; border-radius: 4px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; cursor: pointer; transition: all 0.2s; background: #fff; }
+        .home-card:hover { border-color: #d04a02; box-shadow: 0 2px 12px rgba(208,74,2,0.12); }
+        .home-card .card-icon { font-size: 40px; color: #d04a02; }
+        .home-card .card-label { font-size: 15px; color: #333; font-weight: 500; }
+
+        /* ── Search Page ── */
+        .page-heading { font-size: 24px; font-weight: 400; color: #333; text-align: center; margin-bottom: 28px; }
+        .search-bar { display: flex; align-items: center; border: 1px solid #ddd; border-radius: 4px; max-width: 700px; width: 100%; margin: 0 auto 32px; background: #fff; }
+        .search-bar .search-icon { padding: 10px 14px; color: #d04a02; font-size: 18px; }
+        .search-bar input { flex: 1; border: none; padding: 12px 0; font-size: 14px; outline: none; background: transparent; }
+        .search-bar .search-btn { display: flex; align-items: center; gap: 6px; padding: 10px 18px; background: none; border: none; border-left: 1px solid #eee; color: #333; font-size: 14px; cursor: pointer; font-weight: 500; }
+        .search-bar .search-btn:hover { color: #d04a02; }
+        .search-bar .reset-btn { display: flex; align-items: center; gap: 4px; padding: 10px 18px; background: none; border: none; border-left: 1px solid #eee; color: #333; font-size: 14px; cursor: pointer; }
+        .search-bar .reset-btn:hover { color: #d04a02; }
+
+        /* ── Result Table ── */
+        .result-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+        .result-table th { background: #f0ede8; padding: 10px 14px; text-align: left; font-size: 13px; font-weight: 600; color: #444; border-bottom: 1px solid #ddd; }
+        .result-table td { padding: 12px 14px; font-size: 13px; border-bottom: 1px solid #eee; color: #333; cursor: pointer; }
+        .result-table tr:hover td { background: #fdf6f0; }
+
+        /* ── Register Page ── */
+        .register-form { max-width: 500px; width: 100%; margin: 0 auto; }
+        .form-label { font-size: 14px; color: #333; margin-bottom: 4px; }
+        .form-label .muted { color: #999; font-size: 12px; font-style: italic; }
+        .form-control { width: 100%; padding: 12px 14px; border: 1px solid #ddd; border-radius: 3px; font-size: 14px; background: #f5f5f5; margin-bottom: 16px; }
+        .form-control:focus { outline: none; border-color: #d04a02; background: #fff; }
+        .register-actions { display: flex; align-items: center; justify-content: space-between; margin-top: 8px; }
+        .btn-bulk { display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; border: 1px solid #ddd; border-radius: 4px; background: #fff; font-size: 14px; color: #333; cursor: pointer; transition: all 0.15s; }
+        .btn-bulk:hover { border-color: #d04a02; color: #d04a02; }
+        .btn-bulk .icon { font-size: 20px; color: #333; }
+        .btn-orange { padding: 10px 28px; background: #d04a02; color: #fff; border: none; border-radius: 4px; font-size: 14px; font-weight: 600; cursor: pointer; }
+        .btn-orange:hover { background: #b83d00; }
+        .btn-outline-orange { padding: 10px 28px; background: #fff; color: #d04a02; border: 1px solid #d04a02; border-radius: 4px; font-size: 14px; font-weight: 500; cursor: pointer; }
+        .btn-outline-orange:hover { background: #fdf2ec; }
+        .btn-gray { padding: 10px 28px; background: #f5f5f5; color: #555; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; cursor: pointer; }
+        .btn-gray:hover { background: #eee; }
+
+        /* ── Bulk Registration ── */
+        .bulk-content { max-width: 800px; width: 100%; margin: 0 auto; }
+        .step-text { font-size: 14px; color: #333; margin-bottom: 12px; line-height: 1.6; }
+        .step-text a { color: #d04a02; text-decoration: none; font-weight: 600; }
+        .step-text a:hover { text-decoration: underline; }
+        .step-num { color: #2d2d2d; font-weight: 600; }
+        .upload-row { display: flex; align-items: center; gap: 8px; margin-bottom: 24px; }
+        .upload-input { flex: 1; padding: 10px 14px; border: 1px solid #ddd; border-radius: 3px; font-size: 13px; background: #fff; }
+        .upload-delete { padding: 8px; border: 1px solid #ddd; background: #fff; cursor: pointer; border-radius: 3px; font-size: 16px; color: #666; }
+        .upload-browse { padding: 8px 16px; border: 1px solid #ddd; background: #fff; cursor: pointer; border-radius: 3px; font-size: 13px; display: flex; align-items: center; gap: 6px; }
+        .upload-browse:hover { border-color: #d04a02; color: #d04a02; }
+
+        /* ── Delegated Account Owner ── */
+        .owner-section { display: flex; gap: 24px; margin-bottom: 24px; }
+        .owner-search-panel, .owner-selected-panel { flex: 1; }
+        .owner-panel-title { font-size: 13px; font-weight: 600; color: #2d2d2d; margin-bottom: 4px; }
+        .owner-search-row { display: flex; align-items: center; border: 1px solid #ddd; border-radius: 3px; margin-bottom: 8px; }
+        .owner-search-row input { flex: 1; padding: 8px 12px; border: none; font-size: 13px; outline: none; }
+        .owner-search-row .search-icon-btn { padding: 8px 12px; background: #d04a02; color: #fff; border: none; border-radius: 0 3px 3px 0; cursor: pointer; font-size: 14px; }
+        .owner-list { border: 1px solid #eee; min-height: 80px; }
+        .owner-list-header { background: #f5f5f5; padding: 8px 12px; font-size: 12px; color: #666; border-bottom: 1px solid #eee; }
+        .owner-list-item { padding: 10px 12px; font-size: 13px; color: #666; border-bottom: 1px solid #f0f0f0; display: flex; align-items: center; justify-content: space-between; }
+        .owner-list-item .remove-btn { background: none; border: none; color: #999; font-size: 16px; cursor: pointer; font-weight: 700; }
+        .owner-list-item .remove-btn:hover { color: #d04a02; }
+        .bulk-actions { display: flex; gap: 12px; justify-content: center; margin-top: 24px; }
+
+        /* ── User Detail Page ── */
+        .detail-layout { display: flex; gap: 0; max-width: 960px; width: 100%; }
+        .detail-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; width: 100%; max-width: 960px; }
+        .detail-header h2 { font-size: 24px; font-weight: 400; color: #333; }
+        .detail-header .back-link { color: #1a73e8; font-size: 13px; text-decoration: none; cursor: pointer; display: flex; align-items: center; gap: 4px; }
+        .detail-header .back-link:hover { text-decoration: underline; }
+        .detail-sidebar { width: 220px; padding-right: 20px; flex-shrink: 0; }
+        .detail-sidebar-item { padding: 14px 0; border-bottom: 1px solid #e8e8e8; font-size: 14px; color: #333; cursor: pointer; transition: color 0.15s; }
+        .detail-sidebar-item:hover { color: #d04a02; }
+        .detail-sidebar-item.active { color: #d04a02; font-weight: 500; }
+        .detail-main { flex: 1; padding-left: 20px; border-left: 1px solid #e8e8e8; }
+
+        /* ── Profile Details ── */
+        .profile-meta { font-size: 14px; color: #333; margin-bottom: 20px; line-height: 1.8; }
+        .profile-meta strong { font-weight: 600; }
+        .profile-row { display: flex; align-items: center; padding: 14px 0; border-bottom: 1px solid #f0f0f0; }
+        .profile-row .field-name { width: 180px; color: #d04a02; font-size: 14px; font-weight: 400; }
+        .profile-row .field-value { flex: 1; font-size: 14px; color: #333; }
+        .profile-row .edit-btn { background: none; border: none; color: #999; font-size: 16px; cursor: pointer; padding: 4px 8px; }
+        .profile-row .edit-btn:hover { color: #d04a02; }
+        .profile-footer-info { display: flex; gap: 40px; padding: 20px 0; font-size: 13px; color: #333; border-top: 1px solid #e8e8e8; margin-top: 16px; }
+        .profile-footer-info strong { font-weight: 600; }
+        .profile-actions { display: flex; gap: 12px; margin-top: 16px; }
+        .btn-save { padding: 8px 24px; background: #f5f5f5; color: #999; border: 1px solid #ddd; border-radius: 3px; font-size: 13px; cursor: pointer; }
+        .btn-save:hover { background: #eee; color: #333; }
+
+        /* ── Account Status ── */
+        .status-header { display: flex; background: #f5f5f5; border: 1px solid #e8e8e8; border-radius: 4px 4px 0 0; padding: 14px 20px; gap: 0; }
+        .status-header-item { flex: 1; }
+        .status-header-item .label { font-size: 13px; font-weight: 600; color: #333; margin-bottom: 4px; }
+        .status-header-item .value { font-size: 13px; color: #555; }
+        .status-header-item .value .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-left: 4px; vertical-align: middle; }
+        .status-header-item .value .dot-green { background: #4caf50; }
+        .status-header-item .value .dot-orange { background: #ff9800; }
+        .status-row { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border: 1px solid #e8e8e8; border-top: none; }
+        .status-row .status-label { font-size: 14px; color: #333; cursor: pointer; display: flex; align-items: center; gap: 4px; }
+        .status-row .status-label .arrow { font-size: 10px; color: #999; }
+        .btn-enable { padding: 6px 20px; background: #fff; color: #333; border: 1px solid #ccc; border-radius: 3px; font-size: 13px; cursor: pointer; }
+        .btn-enable:hover { border-color: #d04a02; }
+        .btn-disable { padding: 6px 20px; background: #d04a02; color: #fff; border: none; border-radius: 3px; font-size: 13px; cursor: pointer; }
+        .btn-disable:hover { background: #b83d00; }
+
+        /* ── Groups Page ── */
+        .groups-content { max-width: 700px; width: 100%; }
+
+        /* ── Toast ── */
+        .toast { position: fixed; top: 60px; right: 24px; background: #2e7d32; color: #fff; padding: 14px 24px; border-radius: 4px; font-size: 13px; z-index: 300; transform: translateX(400px); transition: transform 0.3s ease; box-shadow: 0 4px 16px rgba(0,0,0,0.15); }
+        .toast.show { transform: translateX(0); }
+
+        /* ── Edit modal inline ── */
+        .edit-inline { display: none; }
+        .edit-inline.show { display: inline-flex; align-items: center; gap: 6px; }
+        .edit-inline input { padding: 4px 8px; border: 1px solid #d04a02; border-radius: 3px; font-size: 13px; width: 180px; }
+        .edit-inline button { padding: 3px 10px; font-size: 12px; cursor: pointer; border-radius: 3px; }
+        .edit-inline .save { background: #d04a02; color: #fff; border: none; }
+        .edit-inline .cancel { background: #fff; color: #666; border: 1px solid #ccc; }
+    </style>
+</head>
+<body>
+
+<!-- ══════ Header ══════ -->
+<header class="header">
+    <div class="header-logo">
+        <span class="pwc">pwc</span>
+        <span class="title">Managed Registration</span>
+    </div>
+    <nav class="header-nav">
+        <a class="active" id="nav-home" onclick="goPage('page-home')">
+            <span class="nav-icon">&#127968;</span> Home
+        </a>
+        <a id="nav-search" onclick="goPage('page-search')">
+            <span class="nav-icon">&#128269;</span> Search
+        </a>
+        <a id="nav-register" onclick="goPage('page-register')">
+            <span class="nav-icon">&#128101;</span> Register
+        </a>
+        <a id="nav-groups" onclick="goPage('page-groups')">
+            <span class="nav-icon">&#128221;</span> Groups
+        </a>
+        <a onclick="showToast('로그아웃 되었습니다.')">
+            <span class="nav-icon">&#128682;</span> Logout
+        </a>
+    </nav>
+</header>
+
+<!-- ── Orange Banner (Search page) ── -->
+<div class="orange-banner" id="privacy-banner">
+    To comply with privacy regulations and professional secrecy, wildcard searches for users are not supported. Use a full email address to search for a known user.
+    <button class="close-banner" onclick="document.getElementById('privacy-banner').classList.remove('show')">&times;</button>
+</div>
+
+<!-- ══════ Main Content ══════ -->
+<div class="main">
+
+    <!-- ╌╌╌ HOME ╌╌╌ -->
+    <div class="page active" id="page-home">
+        <div style="text-align:center;">
+            <div class="user-badge"><span class="icon">&#128100;</span> spark068</div>
+            <div class="home-title">What would you like to do today?</div>
+            <div class="home-cards">
+                <div class="home-card" onclick="goPage('page-search')">
+                    <span class="card-icon">&#128269;</span>
+                    <span class="card-label">Search users</span>
+                </div>
+                <div class="home-card" onclick="goPage('page-register')">
+                    <span class="card-icon">&#128101;</span>
+                    <span class="card-label">Register users</span>
+                </div>
+                <div class="home-card" onclick="goPage('page-groups')">
+                    <span class="card-icon">&#128101;</span>
+                    <span class="card-label">Manage groups</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ╌╌╌ SEARCH ╌╌╌ -->
+    <div class="page" id="page-search">
+        <h2 class="page-heading">Search user accounts</h2>
+        <div class="search-bar">
+            <span class="search-icon">&#128269;</span>
+            <input type="text" id="search-input" placeholder="Please enter the desired user's full email address" onkeydown="if(event.key==='Enter')doSearch()">
+            <button class="search-btn" onclick="doSearch()">&#128269; Search</button>
+            <button class="reset-btn" onclick="resetSearch()">&times; Reset input</button>
+        </div>
+        <div id="search-results"></div>
+    </div>
+
+    <!-- ╌╌╌ REGISTER ╌╌╌ -->
+    <div class="page" id="page-register">
+        <h2 class="page-heading">Register a user</h2>
+        <div class="register-form">
+            <div class="form-label">Client email <span class="muted">(mandatory)</span></div>
+            <input type="email" class="form-control" id="reg-email" placeholder="Enter client email address">
+            <div class="register-actions">
+                <button class="btn-bulk" onclick="goPage('page-bulk')">
+                    <span class="icon">&#128101;</span> Bulk register users
+                </button>
+                <button class="btn-orange" onclick="registerNext()">Next</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ╌╌╌ BULK REGISTRATION ╌╌╌ -->
+    <div class="page" id="page-bulk">
+        <h2 class="page-heading">Bulk Registration</h2>
+        <div class="bulk-content">
+            <div class="step-text">
+                <span class="step-num">1.</span> <a href="#" onclick="showToast('Registration template 파일이 다운로드됩니다.'); return false;">Download</a> registration template file.
+            </div>
+            <div class="step-text" style="margin-bottom:4px;">
+                <span class="step-num">2.</span> Input the required information for each person you are registering.
+            </div>
+            <div class="step-text" style="margin-bottom:20px;">
+                <span class="step-num">3.</span> In Excel Select File -> SaveAs. In the drop down select 'UTF-8 CSV (Comma delimited)(*.csv)'. NOTE: You MUST select 'UTF-8 CSV (Comma delimited)(*.csv)' from the drop down. Excel provides multiple CSV formats in the drop down, but only 'UTF-8 CSV (Comma delimited)(*.csv)' is supported for bulk uploads. After choosing the correct format, select Save. You will get a warning message that this format does not support saving multiple sheets in a Workbook. Select OK, as you only need to save the sheet 'PwC ID - Bulk User Upload', you do not need the Instructions sheet saved as csv.
+            </div>
+
+            <div style="font-size:14px;font-weight:600;color:#333;margin-bottom:8px;">Upload file</div>
+            <div class="upload-row">
+                <input type="text" class="upload-input" id="bulk-filename" readonly placeholder="No file selected">
+                <button class="upload-delete" onclick="document.getElementById('bulk-filename').value=''">&#128465;</button>
+                <button class="upload-browse" onclick="showToast('파일 선택 대화상자가 열립니다.')">&#128194; Browse</button>
+            </div>
+
+            <div style="font-size:14px;margin-bottom:12px;">
+                <span style="color:#2d2d2d;font-weight:600;">4. Add Additional Delegated Account Owner(s)</span>
+                <span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;background:#1a73e8;color:#fff;font-size:10px;font-weight:700;margin-left:4px;cursor:pointer;" title="위임 계정 소유자를 추가합니다.">i</span>
+            </div>
+            <div class="owner-section">
+                <div class="owner-search-panel">
+                    <div class="owner-search-row">
+                        <input type="text" placeholder="Search" id="owner-search-input">
+                        <button class="search-icon-btn" onclick="searchOwner()">&#128269;</button>
+                    </div>
+                    <div class="owner-list">
+                        <div class="owner-list-header">mail</div>
+                        <div class="owner-list-item" id="owner-no-data" style="color:#999;">No data to display</div>
+                    </div>
+                </div>
+                <div class="owner-selected-panel">
+                    <div class="owner-panel-title" style="margin-bottom:4px;">Selected Account Owner(s)</div>
+                    <div class="owner-list">
+                        <div class="owner-list-header">mail</div>
+                        <div class="owner-list-item">
+                            sou-jung.park@pwc.com
+                            <button class="remove-btn" onclick="this.parentElement.remove()">&times;</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="bulk-actions">
+                <button class="btn-gray" onclick="showToast('Bulk Registration이 제출되었습니다.')">Submit</button>
+                <button class="btn-outline-orange" onclick="showToast('모든 필드가 초기화되었습니다.')">Reset fields</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ╌╌╌ USER DETAIL ╌╌╌ -->
+    <div class="page" id="page-detail">
+        <div class="detail-header">
+            <h2 id="detail-title">Gyumin Im</h2>
+            <a class="back-link" onclick="goPage('page-search')">&#10094; Return to client list</a>
+        </div>
+        <div class="detail-layout">
+            <div class="detail-sidebar">
+                <div class="detail-sidebar-item active" onclick="switchDetailTab(this, 'tab-profile')">Profile details</div>
+                <div class="detail-sidebar-item" onclick="switchDetailTab(this, 'tab-password')">Password reset</div>
+                <div class="detail-sidebar-item" onclick="switchDetailTab(this, 'tab-managers')">Account managers</div>
+                <div class="detail-sidebar-item" onclick="switchDetailTab(this, 'tab-status')">Account status</div>
+                <div class="detail-sidebar-item" onclick="switchDetailTab(this, 'tab-azure')">Azure Account status</div>
+            </div>
+            <div class="detail-main">
+                <!-- Profile Details -->
+                <div id="tab-profile">
+                    <div class="profile-meta">
+                        <strong>Username:</strong> <span id="d-username">imgyumin@poscointl.com</span><br>
+                        <strong>PwCPPI:</strong> <span id="d-pwcppi">1017101835</span>
+                    </div>
+                    <div class="profile-row">
+                        <div class="field-name">First name</div>
+                        <div class="field-value" id="d-firstname">Gyumin</div>
+                        <button class="edit-btn" onclick="editField('d-firstname')" title="Edit">&#9998;</button>
+                    </div>
+                    <div class="profile-row">
+                        <div class="field-name">Last name</div>
+                        <div class="field-value" id="d-lastname">Im</div>
+                        <button class="edit-btn" onclick="editField('d-lastname')" title="Edit">&#9998;</button>
+                    </div>
+                    <div class="profile-row">
+                        <div class="field-name">Country or Region</div>
+                        <div class="field-value" id="d-country">KR</div>
+                        <button class="edit-btn" onclick="editField('d-country')" title="Edit">&#9998;</button>
+                    </div>
+                    <div class="profile-row">
+                        <div class="field-name">Organization</div>
+                        <div class="field-value" id="d-org">POSCO INTERNATIONAL</div>
+                        <button class="edit-btn" onclick="editField('d-org')" title="Edit">&#9998;</button>
+                    </div>
+                    <div class="profile-row">
+                        <div class="field-name">Phone Number</div>
+                        <div class="field-value" id="d-phone">+821034298222</div>
+                        <button class="edit-btn" onclick="editField('d-phone')" title="Edit">&#9998;</button>
+                    </div>
+                    <div class="profile-footer-info">
+                        <div><strong>Creation date:</strong> <span id="d-created">2026-02-26</span></div>
+                        <div><strong>Federated user:</strong> <span id="d-federated">false</span></div>
+                        <div><strong>Password Expiration:</strong> <span id="d-pwexp">2026-08-25</span></div>
+                    </div>
+                    <div class="profile-actions">
+                        <button class="btn-save" onclick="showToast('변경 사항이 저장되었습니다.')">Save changes</button>
+                        <button class="btn-save" onclick="showToast('필드가 초기화되었습니다.')">Reset</button>
+                    </div>
+                </div>
+
+                <!-- Password Reset -->
+                <div id="tab-password" style="display:none;">
+                    <div style="padding:20px 0;">
+                        <p style="font-size:14px;color:#333;margin-bottom:20px;">비밀번호를 초기화하면 사용자에게 재설정 이메일이 발송됩니다.</p>
+                        <button class="btn-orange" onclick="showToast('비밀번호 초기화 이메일이 발송되었습니다.')">Reset Password</button>
+                    </div>
+                </div>
+
+                <!-- Account Managers -->
+                <div id="tab-managers" style="display:none;">
+                    <div style="padding:20px 0;">
+                        <p style="font-size:14px;color:#333;margin-bottom:16px;"><strong>Current Account Managers:</strong></p>
+                        <div style="border:1px solid #eee;border-radius:4px;">
+                            <div style="padding:12px 16px;border-bottom:1px solid #f0f0f0;display:flex;align-items:center;justify-content:space-between;">
+                                <span>sou-jung.park@pwc.com</span>
+                                <span style="color:#2e7d32;font-size:12px;">Primary</span>
+                            </div>
+                            <div style="padding:12px 16px;display:flex;align-items:center;justify-content:space-between;">
+                                <span>spark068@pwc.com</span>
+                                <span style="color:#666;font-size:12px;">Delegated</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Account Status -->
+                <div id="tab-status" style="display:none;">
+                    <div class="status-header">
+                        <div class="status-header-item">
+                            <div class="label">Current account status</div>
+                            <div class="value">-complete</div>
+                        </div>
+                        <div class="status-header-item">
+                            <div class="label">Account not activated</div>
+                            <div class="value">-enabled <span class="dot dot-green"></span></div>
+                        </div>
+                        <div class="status-header-item">
+                            <div class="label">Current trusted status</div>
+                            <div class="value">-IA2</div>
+                        </div>
+                    </div>
+                    <div class="status-row">
+                        <div class="status-label">Enable <span class="arrow">&#9660;</span></div>
+                        <button class="btn-enable" onclick="showToast('계정이 활성화되었습니다.')">Enable</button>
+                    </div>
+                    <div class="status-row">
+                        <div class="status-label">Disable <span class="arrow">&#9660;</span></div>
+                        <button class="btn-disable" onclick="showToast('계정이 비활성화되었습니다.')">Disable</button>
+                    </div>
+                    <div class="status-row">
+                        <div class="status-label">Suspend <span class="arrow">&#9660;</span></div>
+                        <button class="btn-disable" onclick="showToast('계정이 정지되었습니다.')">Suspend</button>
+                    </div>
+                </div>
+
+                <!-- Azure Account Status -->
+                <div id="tab-azure" style="display:none;">
+                    <div style="padding:20px 0;">
+                        <p style="font-size:14px;color:#999;">Azure Account 정보가 없습니다.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ╌╌╌ GROUPS ╌╌╌ -->
+    <div class="page" id="page-groups">
+        <h2 class="page-heading">Manage Groups</h2>
+        <div class="groups-content" style="margin:0 auto;">
+            <div style="display:flex;justify-content:flex-end;margin-bottom:16px;">
+                <button class="btn-orange" onclick="showToast('새 그룹 생성 화면으로 이동합니다.')">+ Create Group</button>
+            </div>
+            <table class="result-table">
+                <thead>
+                    <tr>
+                        <th>Group Name</th>
+                        <th>Members</th>
+                        <th>Created</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>05239 세아베스틸지주 - Finance Team</td>
+                        <td>8</td>
+                        <td>2025-12-01</td>
+                        <td><a style="color:#d04a02;cursor:pointer;" onclick="showToast('그룹 편집 화면')">Edit</a></td>
+                    </tr>
+                    <tr>
+                        <td>05239 세아베스틸지주 - Audit Team</td>
+                        <td>5</td>
+                        <td>2025-12-01</td>
+                        <td><a style="color:#d04a02;cursor:pointer;" onclick="showToast('그룹 편집 화면')">Edit</a></td>
+                    </tr>
+                    <tr>
+                        <td>05239 세아베스틸지주 - Client Contacts</td>
+                        <td>16</td>
+                        <td>2026-01-15</td>
+                        <td><a style="color:#d04a02;cursor:pointer;" onclick="showToast('그룹 편집 화면')">Edit</a></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<!-- ══════ Footer ══════ -->
+<footer class="footer">
+    <div class="copyright">&copy; 2017- 2026 PwC. All rights reserved. PwC refers to the US member firm or one of its subsidiaries or affiliates, and may sometimes refer to the PwC network. Each member firm is a separate legal entity. Please see www.pwc.com/structure for further details.</div>
+    <div class="footer-links">
+        <a href="#">Cookie information</a> <span>|</span>
+        <a href="#">View Terms Statement</a> <span>|</span>
+        <a href="#">View Privacy Statement</a> <span>|</span>
+        <a href="#">FAQs</a> <span>|</span>
+        <a href="#">Select a language: English</a>
+    </div>
+</footer>
+
+<!-- ══════ Toast ══════ -->
+<div class="toast" id="toast"></div>
+
+<script>
+    // ── Sample User Data ──
+    const users = {
+        'imgyumin@poscointl.com': { email:'imgyumin@poscointl.com', first:'Gyumin', last:'Im', org:'POSCO INTERNATIONAL', country:'KR', status:'A', trust:'IA2', created:'02/26/2026 9:22:56 am', login:'04/16/2026 11:13:05 am', phone:'+821034298222', pwcppi:'1017101835', pwexp:'2026-08-25' },
+        'ahnhk@seah.co.kr': { email:'ahnhk@seah.co.kr', first:'Hongkyu', last:'Ahn', org:'SeAH Global Vina', country:'KR', status:'A', trust:'IA2', created:'09/18/2025 2:10:00 pm', login:'04/23/2025 10:05:00 am', phone:'+82104567890', pwcppi:'1018203456', pwexp:'2026-09-18' },
+        'stella.ha@seah.global': { email:'stella.ha@seah.global', first:'Jaesin', last:'Ha', org:'seah.global', country:'KR', status:'A', trust:'IA2', created:'01/15/2025 3:00:00 pm', login:'09/23/2024 8:00:00 am', phone:'+82109876543', pwcppi:'1019305678', pwexp:'2026-07-15' },
+        'chanwoo.lee@seahgv.com': { email:'chanwoo.lee@seahgv.com', first:'Chanwoo', last:'Lee', org:'SeAH Global Vina (SGV)', country:'KR', status:'A', trust:'IA2', created:'06/01/2025 10:00:00 am', login:'12/18/2024 4:30:00 pm', phone:'+82101234567', pwcppi:'1020401234', pwexp:'2026-12-01' },
+        'test@example.com': { email:'test@example.com', first:'Test', last:'User', org:'Test Corp', country:'US', status:'A', trust:'IA1', created:'01/01/2026 12:00:00 am', login:'04/01/2026 9:00:00 am', phone:'+1234567890', pwcppi:'9999999999', pwexp:'2026-07-01' },
+    };
+
+    // ── Page Navigation ──
+    function goPage(pageId) {
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        document.getElementById(pageId).classList.add('active');
+
+        // Update nav
+        document.querySelectorAll('.header-nav a').forEach(a => a.classList.remove('active'));
+        const navMap = { 'page-home':'nav-home', 'page-search':'nav-search', 'page-register':'nav-register', 'page-bulk':'nav-register', 'page-groups':'nav-groups', 'page-detail':'nav-search' };
+        const navId = navMap[pageId];
+        if (navId) document.getElementById(navId).classList.add('active');
+
+        // Show/hide banner
+        const banner = document.getElementById('privacy-banner');
+        if (pageId === 'page-search') {
+            banner.classList.add('show');
+        } else {
+            banner.classList.remove('show');
+        }
+    }
+
+    // ── Search ──
+    function doSearch() {
+        const query = document.getElementById('search-input').value.trim().toLowerCase();
+        const container = document.getElementById('search-results');
+        if (!query) { container.innerHTML = ''; return; }
+
+        const found = Object.values(users).filter(u => u.email.toLowerCase().includes(query));
+
+        if (found.length === 0) {
+            container.innerHTML = '<p style="text-align:center;color:#999;padding:20px;">No users found for "' + query + '"</p>';
+            return;
+        }
+
+        let html = '<table class="result-table"><thead><tr><th>Email</th><th>First name</th><th>Last name</th><th>Organization</th><th>Country or Region</th><th>Status</th><th>Trust level</th><th>Creation date</th><th>Last login</th></tr></thead><tbody>';
+        found.forEach(u => {
+            html += '<tr onclick="openDetail(\'' + u.email + '\')">';
+            html += '<td>' + u.email + '</td><td>' + u.first + '</td><td>' + u.last + '</td><td>' + u.org + '</td><td>' + u.country + '</td><td>' + u.status + '</td><td>' + u.trust + '</td><td>' + u.created + '</td><td>' + u.login + '</td>';
+            html += '</tr>';
+        });
+        html += '</tbody></table>';
+        container.innerHTML = html;
+    }
+
+    function resetSearch() {
+        document.getElementById('search-input').value = '';
+        document.getElementById('search-results').innerHTML = '';
+    }
+
+    // ── Open User Detail ──
+    function openDetail(email) {
+        const u = users[email];
+        if (!u) return;
+
+        document.getElementById('detail-title').textContent = u.first + ' ' + u.last;
+        document.getElementById('d-username').textContent = u.email;
+        document.getElementById('d-pwcppi').textContent = u.pwcppi;
+        document.getElementById('d-firstname').textContent = u.first;
+        document.getElementById('d-lastname').textContent = u.last;
+        document.getElementById('d-country').textContent = u.country;
+        document.getElementById('d-org').textContent = u.org;
+        document.getElementById('d-phone').textContent = u.phone;
+        document.getElementById('d-created').textContent = u.created.split(' ')[0];
+        document.getElementById('d-federated').textContent = 'false';
+        document.getElementById('d-pwexp').textContent = u.pwexp;
+
+        // Reset to profile tab
+        switchDetailTab(document.querySelector('.detail-sidebar-item'), 'tab-profile');
+        goPage('page-detail');
+    }
+
+    // ── Detail Tab Switch ──
+    function switchDetailTab(el, tabId) {
+        document.querySelectorAll('.detail-sidebar-item').forEach(s => s.classList.remove('active'));
+        el.classList.add('active');
+        ['tab-profile','tab-password','tab-managers','tab-status','tab-azure'].forEach(id => {
+            document.getElementById(id).style.display = (id === tabId) ? 'block' : 'none';
+        });
+    }
+
+    // ── Edit Field ──
+    function editField(fieldId) {
+        const el = document.getElementById(fieldId);
+        const currentValue = el.textContent;
+        const originalHTML = el.innerHTML;
+
+        el.innerHTML = '<span class="edit-inline show"><input type="text" value="' + currentValue + '" id="edit-input-' + fieldId + '"><button class="save" onclick="saveField(\'' + fieldId + '\')">&#10003;</button><button class="cancel" onclick="cancelEdit(\'' + fieldId + '\', \'' + currentValue.replace(/'/g, "\\'") + '\')">&#10005;</button></span>';
+        document.getElementById('edit-input-' + fieldId).focus();
+    }
+
+    function saveField(fieldId) {
+        const input = document.getElementById('edit-input-' + fieldId);
+        document.getElementById(fieldId).textContent = input.value;
+        showToast('필드가 수정되었습니다.');
+    }
+
+    function cancelEdit(fieldId, original) {
+        document.getElementById(fieldId).textContent = original;
+    }
+
+    // ── Register Next ──
+    function registerNext() {
+        const email = document.getElementById('reg-email').value.trim();
+        if (!email) {
+            showToast('이메일을 입력해주세요.');
+            return;
+        }
+        showToast('사용자 등록이 진행됩니다: ' + email);
+    }
+
+    // ── Search Owner ──
+    function searchOwner() {
+        const query = document.getElementById('owner-search-input').value.trim();
+        const noData = document.getElementById('owner-no-data');
+        if (query) {
+            noData.textContent = query + '@pwc.com 검색 중...';
+            setTimeout(() => { noData.textContent = 'No data to display'; }, 1500);
+        }
+    }
+
+    // ── Toast ──
+    function showToast(msg) {
+        const t = document.getElementById('toast');
+        t.textContent = msg;
+        t.classList.add('show');
+        setTimeout(() => t.classList.remove('show'), 2500);
+    }
+
+    // ── Pre-fill search for demo ──
+    // Auto-show results if user comes from clicking a demo link
+</script>
+
+</body>
+</html>

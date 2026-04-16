@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Easy View - Admin Portal</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700;900&display=swap');
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Noto Sans KR', 'Segoe UI', sans-serif; background: #fff; color: #2d2d2d; font-size: 14px; }
+
+        /* ═══ Header ═══ */
+        .header { display: flex; align-items: center; justify-content: space-between; height: 56px; padding: 0 40px; background: #fff; border-bottom: 1px solid #e8e8e8; position: sticky; top: 0; z-index: 100; }
+        .header-logo { display: flex; align-items: center; gap: 12px; }
+        .header-logo .pwc { font-size: 22px; font-weight: 900; color: #d04a02; font-style: italic; }
+        .header-logo .divider { width: 1px; height: 20px; background: #ddd; }
+        .header-logo .title { font-size: 15px; color: #2d2d2d; font-weight: 400; letter-spacing: -0.3px; }
+        .header-nav { display: flex; gap: 0; }
+        .header-nav a { padding: 18px 24px; text-decoration: none; color: #2d2d2d; font-size: 15px; font-weight: 500; border-bottom: 3px solid transparent; transition: all 0.2s; cursor: pointer; }
+        .header-nav a:hover { color: #d04a02; }
+        .header-nav a.active { color: #d04a02; border-bottom-color: #d04a02; }
+        .header-user { position: relative; }
+        .header-avatar { width: 38px; height: 38px; border-radius: 50%; background: #e8e8e8; color: #555; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 600; cursor: pointer; border: 2px solid transparent; transition: border-color 0.2s; }
+        .header-avatar:hover, .header-avatar.open { border-color: #d04a02; }
+        .user-dropdown { position: absolute; top: 50px; right: 0; background: #fff; border: 1px solid #e8e8e8; border-radius: 8px; padding: 20px; width: 260px; box-shadow: 0 8px 30px rgba(0,0,0,0.12); display: none; z-index: 200; }
+        .user-dropdown.show { display: block; }
+        .user-dropdown .ud-header { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+        .user-dropdown .ud-avatar { width: 44px; height: 44px; border-radius: 50%; background: #e8e8e8; color: #555; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 600; flex-shrink: 0; }
+        .user-dropdown .ud-name { font-size: 15px; font-weight: 700; color: #2d2d2d; }
+        .user-dropdown .ud-info { font-size: 12px; color: #888; line-height: 1.5; }
+        .user-dropdown .ud-role { display: inline-block; margin-top: 4px; font-size: 11px; color: #666; background: #f5f5f5; padding: 2px 8px; border-radius: 3px; }
+        .user-dropdown .signout-btn { display: block; margin-top: 16px; margin-left: auto; background: #d04a02; color: #fff; border: none; padding: 6px 20px; border-radius: 3px; font-size: 12px; font-weight: 700; cursor: pointer; letter-spacing: 0.5px; }
+        .user-dropdown .signout-btn:hover { background: #b83d00; }
+
+        /* ═══ Hero Section ═══ */
+        .hero { position: relative; background: linear-gradient(135deg, #fefefe 0%, #fdf6f0 50%, #f5ece4 100%); padding: 80px 40px 60px; overflow: hidden; }
+        .hero::after { content: ''; position: absolute; right: -100px; top: -60px; width: 600px; height: 600px; background: radial-gradient(circle, rgba(208,74,2,0.06) 0%, transparent 70%); pointer-events: none; }
+        .hero-content { max-width: 1200px; margin: 0 auto; position: relative; z-index: 1; }
+        .hero-eyebrow { display: inline-flex; align-items: center; gap: 8px; background: #fff; border: 1px solid #e8e8e8; border-radius: 24px; padding: 6px 16px; font-size: 13px; color: #666; margin-bottom: 20px; }
+        .hero-eyebrow .dot { width: 8px; height: 8px; border-radius: 50%; background: #4caf50; }
+        .hero h1 { font-size: 48px; font-weight: 900; color: #2d2d2d; line-height: 1.15; margin-bottom: 16px; letter-spacing: -1px; }
+        .hero h1 span { color: #d04a02; }
+        .hero p { font-size: 18px; color: #666; font-weight: 300; line-height: 1.6; max-width: 600px; }
+        .hero-cta { margin-top: 32px; display: flex; gap: 12px; }
+        .hero-cta .btn-hero { padding: 14px 32px; border-radius: 6px; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s; text-decoration: none; display: inline-flex; align-items: center; gap: 8px; }
+        .btn-hero-primary { background: #2d2d2d; color: #fff; border: none; }
+        .btn-hero-primary:hover { background: #1a1a1a; }
+        .btn-hero-outline { background: transparent; color: #2d2d2d; border: 1px solid #ccc; }
+        .btn-hero-outline:hover { border-color: #d04a02; color: #d04a02; }
+
+        /* ═══ Section Common ═══ */
+        .section { padding: 60px 40px; max-width: 1280px; margin: 0 auto; }
+        .section-header { margin-bottom: 36px; }
+        .section-header .accent-bar { width: 4px; height: 28px; background: #d04a02; display: inline-block; vertical-align: middle; margin-right: 12px; border-radius: 2px; }
+        .section-title { font-size: 28px; font-weight: 800; color: #2d2d2d; display: inline; vertical-align: middle; letter-spacing: -0.5px; }
+        .section-subtitle { font-size: 15px; color: #888; font-weight: 300; margin-top: 8px; margin-left: 16px; }
+
+        /* ═══ Admin Feature Cards (3 columns) ═══ */
+        .admin-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-bottom: 20px; }
+        .admin-card { border-radius: 12px; padding: 32px 28px; cursor: pointer; transition: all 0.25s; position: relative; overflow: hidden; min-height: 260px; display: flex; flex-direction: column; }
+        .admin-card::before { content: attr(data-num); position: absolute; top: 12px; right: 20px; font-size: 72px; font-weight: 900; opacity: 0.1; color: #fff; line-height: 1; }
+        .admin-card:hover { transform: translateY(-4px); box-shadow: 0 12px 40px rgba(0,0,0,0.12); }
+        .admin-card .card-icon { font-size: 28px; margin-bottom: 16px; opacity: 0.9; }
+        .admin-card h3 { font-size: 20px; font-weight: 700; margin-bottom: 16px; line-height: 1.3; }
+        .admin-card ul { list-style: none; font-size: 13px; line-height: 1.9; flex: 1; }
+        .admin-card ul li::before { content: '●'; margin-right: 8px; font-size: 8px; vertical-align: middle; }
+        .admin-card .card-arrow { align-self: flex-end; margin-top: 16px; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; transition: all 0.2s; }
+        .card-orange { background: linear-gradient(135deg, #d04a02 0%, #e8790a 100%); color: #fff; }
+        .card-orange .card-arrow { background: rgba(255,255,255,0.2); color: #fff; }
+        .card-orange:hover .card-arrow { background: rgba(255,255,255,0.35); }
+        .card-gray { background: linear-gradient(135deg, #555 0%, #777 100%); color: #fff; }
+        .card-gray .card-arrow { background: rgba(255,255,255,0.15); color: #fff; }
+        .card-gray:hover .card-arrow { background: rgba(255,255,255,0.3); }
+        .card-dark { background: linear-gradient(135deg, #2d2d2d 0%, #444 100%); color: #fff; }
+        .card-dark .card-arrow { background: rgba(255,255,255,0.1); color: #fff; }
+        .card-dark:hover .card-arrow { background: rgba(255,255,255,0.25); }
+
+        /* ═══ Stats Section ═══ */
+        .stats-section { background: #2d2d2d; padding: 60px 40px; }
+        .stats-inner { max-width: 1200px; margin: 0 auto; }
+        .stats-title { font-size: 22px; color: #fff; font-weight: 300; margin-bottom: 8px; }
+        .stats-title strong { font-weight: 700; color: #d04a02; }
+        .stats-desc { font-size: 14px; color: #999; margin-bottom: 36px; }
+        .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 32px; }
+        .stat-card { background: #3a3a3a; border-radius: 10px; padding: 28px 24px; text-align: center; transition: all 0.2s; }
+        .stat-card:hover { background: #444; }
+        .stat-num { font-size: 44px; font-weight: 900; color: #d04a02; line-height: 1.1; margin-bottom: 8px; }
+        .stat-label { font-size: 14px; color: #ccc; font-weight: 400; }
+        .stats-email { background: #d04a02; border-radius: 8px; padding: 16px 24px; text-align: center; color: #fff; font-size: 15px; display: flex; align-items: center; justify-content: center; gap: 10px; cursor: pointer; transition: background 0.2s; }
+        .stats-email:hover { background: #e8790a; }
+
+        /* ═══ Quick Links Section ═══ */
+        .quick-section { background: #faf9f7; padding: 60px 40px; }
+        .quick-inner { max-width: 1200px; margin: 0 auto; }
+        .quick-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+        .quick-item { background: #fff; border: 1px solid #e8e8e8; border-radius: 10px; padding: 24px; display: flex; align-items: center; gap: 20px; cursor: pointer; transition: all 0.2s; }
+        .quick-item:hover { border-color: #d04a02; box-shadow: 0 4px 16px rgba(208,74,2,0.08); }
+        .quick-item .qi-icon { width: 48px; height: 48px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; }
+        .qi-orange { background: #fef0e6; color: #d04a02; }
+        .qi-blue { background: #e8f0fe; color: #1a73e8; }
+        .qi-green { background: #e6f4ea; color: #1e8e3e; }
+        .qi-purple { background: #f3e8fd; color: #7b1fa2; }
+        .quick-item .qi-title { font-size: 15px; font-weight: 600; color: #2d2d2d; margin-bottom: 4px; }
+        .quick-item .qi-desc { font-size: 12px; color: #999; }
+        .quick-item .qi-arrow { margin-left: auto; font-size: 18px; color: #ccc; transition: color 0.2s; }
+        .quick-item:hover .qi-arrow { color: #d04a02; }
+
+        /* ═══ Footer ═══ */
+        .footer { padding: 20px 40px; border-top: 1px solid #e8e8e8; display: flex; align-items: center; justify-content: space-between; font-size: 11px; color: #999; }
+        .footer-links { display: flex; gap: 4px; }
+        .footer-links a { color: #d04a02; text-decoration: none; font-size: 11px; }
+        .footer-links a:hover { text-decoration: underline; }
+        .footer-links span { color: #ccc; }
+        .scroll-top { position: fixed; bottom: 24px; right: 24px; width: 40px; height: 40px; border-radius: 50%; background: #fff; border: 1px solid #ddd; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 18px; color: #666; box-shadow: 0 2px 8px rgba(0,0,0,0.08); transition: all 0.2s; z-index: 50; }
+        .scroll-top:hover { border-color: #d04a02; color: #d04a02; }
+
+        /* ═══ Sub Pages Layout ═══ */
+        .sub-layout { display: flex; min-height: calc(100vh - 56px); }
+        .sub-sidebar { width: 220px; border-right: 1px solid #e8e8e8; padding: 24px 0; flex-shrink: 0; }
+        .sub-sidebar-item { display: flex; align-items: center; gap: 10px; padding: 12px 24px; cursor: pointer; color: #555; font-size: 14px; transition: all 0.15s; }
+        .sub-sidebar-item:hover { background: #fef0e6; color: #d04a02; }
+        .sub-sidebar-item.active { color: #d04a02; font-weight: 600; }
+        .sub-sidebar-item .ss-icon { font-size: 18px; width: 22px; text-align: center; }
+        .sub-sidebar-toggle { display: flex; align-items: center; gap: 10px; padding: 12px 24px; cursor: pointer; color: #555; font-size: 14px; }
+        .sub-sidebar-toggle:hover { color: #d04a02; }
+        .sub-sidebar-toggle .arrow { margin-left: auto; font-size: 10px; transition: transform 0.2s; }
+        .sub-sidebar-toggle .arrow.open { transform: rotate(180deg); }
+        .sub-children { overflow: hidden; max-height: 0; transition: max-height 0.3s ease; }
+        .sub-children.open { max-height: 300px; }
+        .sub-children a { display: block; padding: 9px 24px 9px 56px; font-size: 13px; color: #777; text-decoration: none; cursor: pointer; transition: all 0.15s; }
+        .sub-children a:hover { color: #d04a02; background: #fef0e6; }
+        .sub-main { flex: 1; }
+
+        /* ═══ Notice Section (Robotic style) ═══ */
+        .notice-content { padding: 32px 40px; }
+        .notice-title-row { display: flex; align-items: center; gap: 8px; margin-bottom: 24px; }
+        .notice-title-row h2 { font-size: 22px; font-weight: 700; }
+        .notice-title-row .help { width: 20px; height: 20px; border-radius: 50%; border: 1px solid #bbb; color: #999; font-size: 11px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+        .filter-dropdown { position: relative; display: inline-block; margin-bottom: 20px; }
+        .filter-btn { display: flex; align-items: center; gap: 8px; padding: 8px 16px; border: 1px solid #d04a02; border-radius: 4px; background: #fff; color: #d04a02; font-size: 13px; cursor: pointer; min-width: 240px; justify-content: space-between; }
+        .filter-panel { position: absolute; top: 100%; left: 0; right: 0; background: #fff; border: 1px solid #ddd; border-top: none; border-radius: 0 0 4px 4px; z-index: 10; display: none; padding: 8px 0; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+        .filter-panel.show { display: block; }
+        .filter-panel label { display: flex; align-items: center; gap: 10px; padding: 8px 16px; font-size: 13px; color: #555; cursor: pointer; }
+        .filter-panel label:hover { background: #fef0e6; }
+        .filter-panel input[type="checkbox"] { accent-color: #d04a02; width: 15px; height: 15px; }
+        .notice-table { width: 100%; border-collapse: collapse; }
+        .notice-table th { background: #f7f5f2; padding: 12px 16px; font-size: 13px; font-weight: 600; color: #555; text-align: left; border-bottom: 1px solid #e0e0e0; }
+        .notice-table td { padding: 16px; font-size: 14px; border-bottom: 1px solid #f0f0f0; }
+        .notice-table tr:hover td { background: #fefaf7; }
+        .notice-table .col-center { text-align: center; }
+        .notice-table .author { color: #d04a02; font-weight: 500; }
+        .notice-table .title-link { color: #2d2d2d; text-decoration: none; cursor: pointer; }
+        .notice-table .title-link:hover { color: #d04a02; }
+        .pagination { display: flex; justify-content: center; margin-top: 24px; gap: 4px; }
+        .pagination button { width: 32px; height: 32px; border: 1px solid #ddd; background: #fff; border-radius: 6px; cursor: pointer; font-size: 13px; color: #555; display: flex; align-items: center; justify-content: center; }
+        .pagination button.active { background: #d04a02; color: #fff; border-color: #d04a02; }
+        .pagination button:hover:not(.active) { border-color: #d04a02; color: #d04a02; }
+
+        /* ═══ Page Toggle ═══ */
+        .view { display: none; }
+        .view.active { display: block; }
+
+        /* ═══ Toast ═══ */
+        .toast { position: fixed; top: 64px; right: 32px; background: #2d2d2d; color: #fff; padding: 14px 24px; border-radius: 8px; font-size: 13px; z-index: 300; transform: translateX(400px); transition: transform 0.3s ease; box-shadow: 0 4px 20px rgba(0,0,0,0.15); }
+        .toast.show { transform: translateX(0); }
+    </style>
+</head>
+<body>
+
+<!-- ═══════ Header ═══════ -->
+<header class="header">
+    <div class="header-logo">
+        <span class="pwc">EV</span>
+        <div class="divider"></div>
+        <span class="title">Easy View Admin Portal</span>
+    </div>
+    <nav class="header-nav">
+        <a class="active" onclick="showView('view-home')">Home</a>
+        <a onclick="showView('view-solutions')">Our Solutions</a>
+        <a onclick="showView('view-notice')">공지사항</a>
+        <a onclick="window.open('connect-admin.html','_blank')">Site Admin</a>
+        <a onclick="window.open('managed-registration.html','_blank')">User Registration</a>
+    </nav>
+    <div class="header-user">
+        <div class="header-avatar" onclick="toggleDropdown()">S</div>
+        <div class="user-dropdown" id="user-dropdown">
+            <div class="ud-header">
+                <div class="ud-avatar">S</div>
+                <div>
+                    <div class="ud-name">Sou-Jung Park</div>
+                    <div class="ud-info">삼일회계법인<br>sou-jung.park@pwc.com</div>
+                    <span class="ud-role">관리자</span>
+                </div>
+            </div>
+            <button class="signout-btn" onclick="showToast('로그아웃 되었습니다.')">SIGN OUT</button>
+        </div>
+    </div>
+</header>
+
+<!-- ═══════ VIEW: Home ═══════ -->
+<div class="view active" id="view-home">
+
+    <!-- Hero -->
+    <section class="hero">
+        <div class="hero-content">
+            <div class="hero-eyebrow"><span class="dot"></span> Easy View Admin Portal v2.0</div>
+            <h1>쉽고 빠른 감사 업무,<br><span>Easy View</span>로 시작하세요.</h1>
+            <p>감사 업무에 특화된 보안 포털을 통해 고객사별 사용자 등록, 권한 관리, 데이터 접근 제어를 한 곳에서 관리합니다.</p>
+            <div class="hero-cta">
+                <a class="btn-hero btn-hero-primary" onclick="window.open('managed-registration.html','_blank')">&#128100; 사용자 등록 바로가기</a>
+                <a class="btn-hero btn-hero-outline" onclick="window.open('connect-admin.html','_blank')">&#128274; Site Administration</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Admin Feature Cards -->
+    <section class="section">
+        <div class="section-header">
+            <span class="accent-bar"></span>
+            <h2 class="section-title">Admin Management</h2>
+            <div class="section-subtitle">관리자 주요 기능을 빠르게 이용하세요.</div>
+        </div>
+        <div class="admin-cards">
+            <div class="admin-card card-orange" data-num="01" onclick="window.open('managed-registration.html','_blank')">
+                <div class="card-icon">&#128100;</div>
+                <h3>User Registration<br>사용자 등록</h3>
+                <ul>
+                    <li>Client 이메일 기반 사용자 등록</li>
+                    <li>Bulk Registration (CSV 일괄 등록)</li>
+                    <li>계정 검색 및 프로필 관리</li>
+                    <li>Account Owner 위임 설정</li>
+                </ul>
+                <div class="card-arrow">&#8594;</div>
+            </div>
+            <div class="admin-card card-gray" data-num="02" onclick="window.open('connect-admin.html','_blank')">
+                <div class="card-icon">&#128274;</div>
+                <h3>Site Administration<br>사이트 관리</h3>
+                <ul>
+                    <li>Engagement 관리 (고객사/법인)</li>
+                    <li>PwC / Client / Third Party 사용자 관리</li>
+                    <li>Connect Role 기반 권한 부여</li>
+                    <li>Custom Access Group 설정</li>
+                </ul>
+                <div class="card-arrow">&#8594;</div>
+            </div>
+            <div class="admin-card card-dark" data-num="03" onclick="showView('view-notice')">
+                <div class="card-icon">&#128227;</div>
+                <h3>Notice & Support<br>공지사항 / 지원</h3>
+                <ul>
+                    <li>시스템 공지사항 및 업데이트 안내</li>
+                    <li>자료실 및 가이드 문서</li>
+                    <li>FAQ 및 문의게시판</li>
+                    <li>카테고리별 필터 검색</li>
+                </ul>
+                <div class="card-arrow">&#8594;</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Stats -->
+    <section class="stats-section">
+        <div class="stats-inner">
+            <div class="stats-title"><strong>Easy View</strong>는 Digital Solution을 통해 고객에게 맞춤형 서비스를 제공합니다.</div>
+            <div class="stats-desc">삼일PwC의 전문가와 함께 귀사의 비즈니스를 한 단계 더 발전시키세요.</div>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-num">120+</div>
+                    <div class="stat-label">등록 고객사</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-num">4,500+</div>
+                    <div class="stat-label">전체 이용자 수</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-num">850+</div>
+                    <div class="stat-label">Engagement</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-num">99.9%</div>
+                    <div class="stat-label">서비스 가동률</div>
+                </div>
+            </div>
+            <div class="stats-email" onclick="showToast('이메일 클라이언트가 열립니다.')">
+                &#9993; kr_easyview_support@pwc.com
+            </div>
+        </div>
+    </section>
+
+    <!-- Quick Links -->
+    <section class="quick-section">
+        <div class="quick-inner">
+            <div class="section-header">
+                <span class="accent-bar"></span>
+                <h2 class="section-title">Quick Links</h2>
+            </div>
+            <div class="quick-grid">
+                <div class="quick-item" onclick="window.open('managed-registration.html','_blank')">
+                    <div class="qi-icon qi-orange">&#128269;</div>
+                    <div>
+                        <div class="qi-title">사용자 검색 (Search)</div>
+                        <div class="qi-desc">이메일 주소로 등록된 사용자 계정을 조회하고 관리합니다.</div>
+                    </div>
+                    <span class="qi-arrow">&#8594;</span>
+                </div>
+                <div class="quick-item" onclick="window.open('managed-registration.html','_blank')">
+                    <div class="qi-icon qi-blue">&#128101;</div>
+                    <div>
+                        <div class="qi-title">사용자 등록 (Register)</div>
+                        <div class="qi-desc">새로운 Client 사용자를 개별 또는 일괄로 등록합니다.</div>
+                    </div>
+                    <span class="qi-arrow">&#8594;</span>
+                </div>
+                <div class="quick-item" onclick="window.open('connect-admin.html','_blank')">
+                    <div class="qi-icon qi-green">&#128274;</div>
+                    <div>
+                        <div class="qi-title">권한 관리 (Role & Access)</div>
+                        <div class="qi-desc">Connect Role 및 Custom Access Group으로 세부 권한을 설정합니다.</div>
+                    </div>
+                    <span class="qi-arrow">&#8594;</span>
+                </div>
+                <div class="quick-item" onclick="window.open('connect-admin.html','_blank')">
+                    <div class="qi-icon qi-purple">&#128196;</div>
+                    <div>
+                        <div class="qi-title">Engagement 관리</div>
+                        <div class="qi-desc">고객사별 Engagement를 조회하고 Third Party 접근을 관리합니다.</div>
+                    </div>
+                    <span class="qi-arrow">&#8594;</span>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+
+<!-- ═══════ VIEW: Our Solutions ═══════ -->
+<div class="view" id="view-solutions">
+    <div class="sub-layout">
+        <aside class="sub-sidebar">
+            <div class="sub-sidebar-item active" onclick="activateSub(this)">
+                <span class="ss-icon">&#128736;</span> Digital & AI
+            </div>
+            <div class="sub-sidebar-item" onclick="activateSub(this)">
+                <span class="ss-icon">&#9881;</span> Robotic Applications
+            </div>
+            <div class="sub-sidebar-item" onclick="activateSub(this)">
+                <span class="ss-icon">&#128188;</span> Managed Services
+            </div>
+        </aside>
+        <div class="sub-main">
+            <!-- Banner -->
+            <div style="background:linear-gradient(135deg,#f5f0eb,#e8e0d8);padding:48px 60px;">
+                <h2 style="font-size:32px;font-weight:800;color:#2d2d2d;margin-bottom:12px;">Digital & AI Applications</h2>
+                <p style="font-size:15px;color:#666;max-width:700px;">회계·재무·세무 분야에 특화된 Digital & AI 솔루션을 통해 고객사의 반복 업무를 자동화하고, 데이터 기반의 의사결정을 통한 새로운 가치를 창출합니다.</p>
+            </div>
+            <!-- Solution Cards -->
+            <div style="padding:40px 60px;">
+                <div style="display:flex;gap:24px;margin-bottom:40px;">
+                    <!-- Enterprise AI -->
+                    <div style="flex:1;display:flex;gap:32px;align-items:flex-start;padding-bottom:40px;border-bottom:1px solid #eee;">
+                        <div style="width:280px;height:180px;background:#f5f5f5;border-radius:8px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:64px;color:#ddd;">&#128187;</div>
+                        <div>
+                            <h3 style="font-size:22px;font-weight:700;margin-bottom:4px;">Enterprise AI</h3>
+                            <p style="font-size:14px;color:#d04a02;margin-bottom:12px;">기업의 AI 도입 여정을 설계하다</p>
+                            <p style="font-size:13px;color:#666;line-height:1.7;margin-bottom:16px;">기업에 맞는 AI 도입 전략부터 구축·활용까지 책임지는 컨설팅과 기술을 결합한 AI 종합 솔루션</p>
+                            <ul style="font-size:13px;color:#444;line-height:2;list-style:disc;padding-left:20px;">
+                                <li>기업 AI 성숙도 기반 맞춤형 도입 전략 수립</li>
+                                <li>AI 인프라·플랫폼·어플리케이션 통합 구축</li>
+                                <li>현업에 바로 활용 가능한 AI Agent 설계·연동</li>
+                                <li>컨설팅부터 운영까지 책임지는 End-to-End 지원</li>
+                            </ul>
+                            <button style="margin-top:16px;padding:10px 24px;border:1px solid #d04a02;background:#fff;color:#d04a02;border-radius:6px;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:8px;" onmouseover="this.style.background='#fef0e6'" onmouseout="this.style.background='#fff'">소개자료 요청하기 &#9992;</button>
+                        </div>
+                    </div>
+                </div>
+                <!-- Accounting Insights -->
+                <div style="display:flex;gap:32px;align-items:flex-start;padding-bottom:40px;border-bottom:1px solid #eee;">
+                    <div style="width:280px;height:180px;background:#f5f5f5;border-radius:8px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:64px;color:#ddd;">&#128202;</div>
+                    <div>
+                        <h3 style="font-size:22px;font-weight:700;margin-bottom:4px;">Accounting Insights</h3>
+                        <p style="font-size:14px;color:#d04a02;margin-bottom:12px;">전문성과 신뢰를 담은 Enterprise-level 회계 AI 서비스</p>
+                        <p style="font-size:13px;color:#666;line-height:1.7;margin-bottom:16px;">K-IFRS 기준서에 따라 회계 처리, 기준서 해석 등 다양한 질의에 대해 전문적인 답변을 제공하는 생성형 AI 서비스</p>
+                        <ul style="font-size:13px;color:#444;line-height:2;list-style:disc;padding-left:20px;">
+                            <li>K-IFRS 회계 질문에 전문가 수준의 AI 답변</li>
+                            <li>필요한 기준서를 즉시 검색, 인용 근거 확인</li>
+                            <li>복잡한 문구도 쉽게 설명하는 AI</li>
+                            <li>번역, 요약, 문서작성까지 한 번에</li>
+                        </ul>
+                        <button style="margin-top:16px;padding:10px 24px;border:1px solid #d04a02;background:#fff;color:#d04a02;border-radius:6px;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:8px;" onmouseover="this.style.background='#fef0e6'" onmouseout="this.style.background='#fff'">소개페이지 바로가기 &#8594;</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════ VIEW: 공지사항 ═══════ -->
+<div class="view" id="view-notice">
+    <div class="sub-layout">
+        <aside class="sub-sidebar">
+            <div class="sub-sidebar-item active">
+                <span class="ss-icon">&#128276;</span> 공지사항
+            </div>
+            <div class="sub-sidebar-item" onclick="showToast('자료실 페이지로 이동합니다.')">
+                <span class="ss-icon">&#128193;</span> 자료실
+            </div>
+            <div class="sub-sidebar-toggle" onclick="toggleChildren('cs-children', this)">
+                <span class="ss-icon">&#128172;</span> 고객센터
+                <span class="arrow">&#9660;</span>
+            </div>
+            <div class="sub-children" id="cs-children">
+                <a onclick="showToast('FAQ 페이지')">FAQ</a>
+                <a onclick="showToast('문의게시판')">문의게시판</a>
+            </div>
+        </aside>
+        <div class="sub-main">
+            <div class="notice-content">
+                <div class="notice-title-row">
+                    <h2>공지사항</h2>
+                    <span class="help" title="시스템 관련 공지사항을 확인합니다.">?</span>
+                </div>
+                <div class="filter-dropdown">
+                    <button class="filter-btn" onclick="toggleFilter()">
+                        <span>* 카테고리를 선택해주세요.</span>
+                        <span id="filter-arrow">&#9660;</span>
+                    </button>
+                    <div class="filter-panel" id="filter-panel">
+                        <label><input type="checkbox"> 일반</label>
+                        <label><input type="checkbox"> Robotic PA</label>
+                        <label><input type="checkbox"> Robotic XBRL</label>
+                        <label><input type="checkbox"> Robotic Lease</label>
+                        <label><input type="checkbox"> 사업보고서 작성 플랫폼</label>
+                    </div>
+                </div>
+                <table class="notice-table">
+                    <thead>
+                        <tr>
+                            <th style="width:60px;text-align:center;">번호</th>
+                            <th style="width:80px;text-align:center;">구분</th>
+                            <th>제목</th>
+                            <th style="width:100px;text-align:center;">작성자</th>
+                            <th style="width:80px;text-align:center;">조회수</th>
+                            <th style="width:120px;text-align:center;">작성일자</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="col-center">5</td>
+                            <td class="col-center">일반</td>
+                            <td><a class="title-link" onclick="showToast('공지사항 상세 페이지로 이동합니다.')">[긴급] Easy View 시스템 정기 점검 안내 (2026-04-20)</a></td>
+                            <td class="col-center author">박소정</td>
+                            <td class="col-center">52</td>
+                            <td class="col-center">2026.04.15.</td>
+                        </tr>
+                        <tr>
+                            <td class="col-center">4</td>
+                            <td class="col-center">일반</td>
+                            <td><a class="title-link" onclick="showToast('공지사항 상세 페이지로 이동합니다.')">Easy View v2.0 신규 기능 업데이트 안내</a></td>
+                            <td class="col-center author">박소정</td>
+                            <td class="col-center">238</td>
+                            <td class="col-center">2026.04.01.</td>
+                        </tr>
+                        <tr>
+                            <td class="col-center">3</td>
+                            <td class="col-center">일반</td>
+                            <td><a class="title-link" onclick="showToast('공지사항 상세 페이지로 이동합니다.')">(종료) 홈페이지 점검에 따른 이용불가 사전 안내 (2026-03-2...</a></td>
+                            <td class="col-center author">박희정</td>
+                            <td class="col-center">106</td>
+                            <td class="col-center">2026.03.18.</td>
+                        </tr>
+                        <tr>
+                            <td class="col-center">2</td>
+                            <td class="col-center">일반</td>
+                            <td><a class="title-link" onclick="showToast('공지사항 상세 페이지로 이동합니다.')">(종료) 새 버전 배포 일정 사전 안내(스마트리뷰어, DSD Wizar...</a></td>
+                            <td class="col-center author">박희정</td>
+                            <td class="col-center">741</td>
+                            <td class="col-center">2025.12.24.</td>
+                        </tr>
+                        <tr>
+                            <td class="col-center">1</td>
+                            <td class="col-center">일반</td>
+                            <td><a class="title-link" onclick="showToast('공지사항 상세 페이지로 이동합니다.')">Easy View Portal 이용 안내</a></td>
+                            <td class="col-center author">최욱</td>
+                            <td class="col-center">742</td>
+                            <td class="col-center">2025.05.25.</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div class="pagination">
+                    <button disabled>&#10094;</button>
+                    <button class="active">1</button>
+                    <button>&#10095;</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════ Footer ═══════ -->
+<footer class="footer">
+    <span>&copy; 2026 PwC. All rights reserved. PwC refers to the US member firm of the PwC network or one of its subsidiaries or affiliates.</span>
+    <div class="footer-links">
+        <a href="#">Privacy policy</a> <span>|</span>
+        <a href="#">Cookie policy</a> <span>|</span>
+        <a href="#">OSS</a>
+    </div>
+</footer>
+
+<!-- Scroll Top -->
+<div class="scroll-top" onclick="window.scrollTo({top:0,behavior:'smooth'})">&#9650;</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+    // ── View Navigation ──
+    function showView(id) {
+        document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+        document.querySelectorAll('.header-nav a').forEach(a => a.classList.remove('active'));
+        const navMap = { 'view-home': 0, 'view-solutions': 1, 'view-notice': 2 };
+        if (navMap[id] !== undefined) {
+            document.querySelectorAll('.header-nav a')[navMap[id]].classList.add('active');
+        }
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // ── User Dropdown ──
+    function toggleDropdown() {
+        const dd = document.getElementById('user-dropdown');
+        dd.classList.toggle('show');
+        document.querySelector('.header-avatar').classList.toggle('open');
+    }
+    document.addEventListener('click', e => {
+        if (!e.target.closest('.header-user')) {
+            document.getElementById('user-dropdown').classList.remove('show');
+            document.querySelector('.header-avatar').classList.remove('open');
+        }
+    });
+
+    // ── Sub Sidebar ──
+    function activateSub(el) {
+        el.closest('.sub-sidebar').querySelectorAll('.sub-sidebar-item').forEach(s => s.classList.remove('active'));
+        el.classList.add('active');
+    }
+    function toggleChildren(id, el) {
+        document.getElementById(id).classList.toggle('open');
+        el.querySelector('.arrow').classList.toggle('open');
+    }
+
+    // ── Filter Dropdown ──
+    function toggleFilter() {
+        document.getElementById('filter-panel').classList.toggle('show');
+    }
+    document.addEventListener('click', e => {
+        if (!e.target.closest('.filter-dropdown')) {
+            document.getElementById('filter-panel').classList.remove('show');
+        }
+    });
+
+    // ── Toast ──
+    function showToast(msg) {
+        const t = document.getElementById('toast');
+        t.textContent = msg;
+        t.classList.add('show');
+        setTimeout(() => t.classList.remove('show'), 2500);
+    }
+</script>
+
+</body>
+</html>

@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Easy View Portal</title>
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <style>
+        :root{--o:#d04a02;--ol:#fef0e6;--oh:#b83d00;--g50:#fafafa;--g100:#f5f5f5;--g200:#e8e8e8;--g300:#ddd;--g400:#bbb;--g500:#888;--g600:#666;--g700:#444;--g800:#2d2d2d;--grn:#10b981;--grn-bg:#ecfdf5;--red:#ef4444;--red-bg:#fef2f2;--blu:#3b82f6;--blu-bg:#eff6ff;--ylw:#f59e0b;--ylw-bg:#fffbeb;--pur:#8b5cf6;--pur-bg:#f5f3ff;}
+        *{margin:0;padding:0;box-sizing:border-box;}
+        body{font-family:Helvetica,Arial,sans-serif;background:#fff;color:var(--g800);font-size:14px;-webkit-font-smoothing:antialiased;}
+        a{cursor:pointer;text-decoration:none;}a[onclick]{user-select:none;}
+
+        /* ═══ Header (Digital Finance Portal 동일) ═══ */
+        .hdr{height:50px;background:#fff;border-bottom:1px solid var(--g200);display:flex;align-items:center;padding:0 28px;position:sticky;top:0;z-index:200;}
+        .hdr-logo{display:flex;align-items:center;gap:8px;cursor:pointer;flex-shrink:0;}
+        .hdr-logo svg{height:22px;width:auto;}
+        .hdr-logo .nm{font-size:14px;color:var(--g800);font-weight:400;margin-left:4px;}
+        .hdr-nav{display:flex;align-items:center;margin:0 auto;}
+        .hdr-nav a{padding:14px 24px;font-size:15px;color:var(--g700);font-weight:500;border-bottom:2px solid transparent;transition:color .15s;}
+        .hdr-nav a:hover{color:var(--o);}
+        .hdr-nav a.on{color:var(--o);font-weight:600;border-bottom-color:var(--o);}
+        .hdr-r{display:flex;align-items:center;gap:10px;flex-shrink:0;}
+        .hdr-back{display:none;align-items:center;gap:4px;padding:5px 12px;font-size:12px;font-weight:600;color:var(--o);cursor:pointer;border:1px solid var(--o);border-radius:3px;background:#fff;}
+        .hdr-back:hover{background:var(--ol);}
+        .av-btn{width:34px;height:34px;border-radius:50%;background:var(--g200);color:var(--g600);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;cursor:pointer;border:none;}
+        .av-btn:hover{background:var(--ol);color:var(--o);}
+        .dd-w{position:relative;}.dd{position:absolute;top:42px;right:0;background:#fff;border:1px solid var(--g200);border-radius:6px;width:250px;box-shadow:0 8px 24px rgba(0,0,0,.1);display:none;overflow:hidden;z-index:210;}
+        .dd.show{display:block;}
+        .dd-u{padding:14px 16px;background:var(--g50);display:flex;gap:10px;align-items:center;}
+        .dd-u .av{width:38px;height:38px;border-radius:50%;background:var(--o);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;flex-shrink:0;}
+        .dd-u .nm{font-size:14px;font-weight:700;}.dd-u .info{font-size:11px;color:var(--g500);line-height:1.5;}
+        .dd-u .rl{display:inline-block;font-size:10px;background:var(--ol);color:var(--o);padding:1px 6px;border-radius:3px;font-weight:600;margin-top:2px;}
+        .dd-i{padding:9px 16px;font-size:13px;color:var(--g700);cursor:pointer;}
+        .dd-i:hover{background:var(--g50);color:var(--o);}
+        .dd-so{color:var(--o);font-weight:600;text-align:center;padding:10px 16px;border-top:1px solid var(--g200);}
+        .dd-so:hover{background:var(--o);color:#fff;}
+
+        /* ═══ Sidebar icon (CSS dot) ═══ */
+        .si{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+
+        /* ═══ Modes ═══ */
+        .mode{display:none;}.mode.on{display:block;}
+
+        /* ═══ Portal ═══ */
+        .p-hero{background:linear-gradient(135deg,#fefefe,#fdf6f0,#f5ece4);padding:64px 40px 52px;}
+        .p-hero-in{max-width:1100px;margin:0 auto;}
+        .p-hero h1{font-size:40px;font-weight:700;line-height:1.2;margin-bottom:12px;letter-spacing:-.8px;}
+        .p-hero h1 em{color:var(--o);font-style:normal;}
+        .p-hero p{font-size:16px;color:var(--g600);font-weight:300;line-height:1.6;max-width:520px;margin-bottom:28px;}
+        .hero-btns{display:flex;gap:10px;}
+        .bh{padding:12px 26px;border-radius:3px;font-size:14px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:8px;border:none;font-family:inherit;}
+        .bh-d{background:var(--g800);color:#fff;}.bh-d:hover{background:#111;}
+        .bh-o{background:#fff;color:var(--g800);border:1px solid var(--g300);}.bh-o:hover{border-color:var(--o);color:var(--o);}
+        .p-sec{padding:52px 40px;max-width:1140px;margin:0 auto;}
+        .p-sh{margin-bottom:28px;}
+        .p-sh .bar{width:4px;height:22px;background:var(--o);display:inline-block;vertical-align:middle;margin-right:10px;border-radius:2px;}
+        .p-sh h2{display:inline;font-size:22px;font-weight:700;vertical-align:middle;}
+        .p-sh .sub{font-size:13px;color:var(--g500);margin-top:5px;margin-left:14px;}
+        .p-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;}
+        .p-card{border-radius:6px;padding:26px 22px;cursor:pointer;transition:all .25s;min-height:220px;display:flex;flex-direction:column;color:#fff;position:relative;overflow:hidden;}
+        .p-card::before{content:attr(data-n);position:absolute;top:6px;right:14px;font-size:58px;font-weight:800;opacity:.08;line-height:1;}
+        .p-card:hover{transform:translateY(-3px);box-shadow:0 10px 30px rgba(0,0,0,.12);}
+        .p-card h3{font-size:17px;font-weight:700;margin-bottom:12px;line-height:1.3;}
+        .p-card ul{list-style:none;font-size:12px;line-height:2;flex:1;}
+        .p-card ul li{padding-left:12px;position:relative;}
+        .p-card ul li::before{content:'';width:4px;height:4px;border-radius:50%;background:rgba(255,255,255,.5);position:absolute;left:0;top:9px;}
+        .c-or{background:linear-gradient(135deg,#d04a02,#e8790a);}
+        .c-gr{background:linear-gradient(135deg,#555,#777);}
+        .c-dk{background:linear-gradient(135deg,#2d2d2d,#444);}
+        .p-stats{background:var(--g800);padding:52px 40px;}
+        .p-stats-in{max-width:1100px;margin:0 auto;}
+        .p-stats h3{font-size:18px;color:#fff;font-weight:300;margin-bottom:5px;}
+        .p-stats h3 strong{color:var(--o);font-weight:700;}
+        .p-stats .desc{font-size:12px;color:var(--g500);margin-bottom:28px;}
+        .p-sg{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px;}
+        .psc{background:#3a3a3a;border-radius:6px;padding:22px 18px;text-align:center;}
+        .psc .num{font-size:36px;font-weight:700;color:var(--o);line-height:1.1;margin-bottom:4px;}
+        .psc .lbl{font-size:12px;color:#bbb;}
+        .p-em{background:var(--o);border-radius:4px;padding:13px;text-align:center;color:#fff;font-size:14px;cursor:pointer;}
+        .p-em:hover{background:#e8790a;}
+        .p-ft{padding:14px 40px;border-top:1px solid var(--g200);font-size:11px;color:var(--g500);display:flex;justify-content:space-between;}
+        .p-ft a{color:var(--o);text-decoration:none;}
+
+        /* ═══ Admin ═══ */
+        .adm-w{display:flex;min-height:calc(100vh - 50px);}
+        .sb{width:220px;border-right:1px solid var(--g200);background:#fff;position:fixed;top:50px;bottom:0;left:0;overflow-y:auto;z-index:90;padding:10px 0;}
+        .sb-s{padding:16px 20px 6px;font-size:10px;font-weight:700;color:var(--g400);letter-spacing:1.2px;text-transform:uppercase;}
+        .sb-i{display:flex;align-items:center;gap:10px;padding:9px 18px;cursor:pointer;color:var(--g600);font-size:13px;font-weight:500;transition:all .12s;border-left:3px solid transparent;}
+        .sb-i:hover{background:var(--ol);color:var(--o);}
+        .sb-i.on{color:var(--o);font-weight:600;background:var(--ol);border-left-color:var(--o);}
+        .sb-i .bdg{margin-left:auto;background:var(--o);color:#fff;font-size:10px;font-weight:700;padding:1px 7px;border-radius:10px;}
+        .adm-m{margin-left:220px;flex:1;padding:24px 28px;background:var(--g50);min-height:calc(100vh - 50px);}
+
+        .ph{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;}
+        .ph h1{font-size:20px;font-weight:700;}.ph .desc{font-size:12px;color:var(--g500);margin-top:2px;}
+        .pha{display:flex;gap:8px;align-items:center;}
+        .btn{padding:7px 16px;border:none;border-radius:3px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:5px;transition:all .12s;}
+        .btn-p{background:var(--o);color:#fff;}.btn-p:hover{background:var(--oh);}
+        .btn-o{background:#fff;color:var(--g700);border:1px solid var(--g300);}.btn-o:hover{border-color:var(--o);color:var(--o);}
+        .btn-g{background:transparent;color:var(--g600);}.btn-g:hover{color:var(--o);background:var(--ol);}
+        .btn-s{padding:4px 10px;font-size:12px;}
+        .btn-ok{background:var(--grn);color:#fff;}
+
+        .cd{background:#fff;border:1px solid var(--g200);border-radius:3px;margin-bottom:18px;}
+        .cd-h{padding:13px 18px;border-bottom:1px solid var(--g200);display:flex;align-items:center;justify-content:space-between;}
+        .cd-h h3{font-size:14px;font-weight:700;}
+        .cd-b{padding:18px;}.cd-f{padding:0;}
+
+        .st-g{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px;}
+        .st-c{background:#fff;border:1px solid var(--g200);border-radius:3px;padding:16px 18px;}
+        .st-c .top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px;}
+        .st-c .sic{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;}
+        .st-c .tr{font-size:11px;font-weight:600;padding:2px 7px;border-radius:10px;}
+        .tu{background:var(--grn-bg);color:var(--grn);}.td{background:var(--red-bg);color:var(--red);}
+        .st-c .val{font-size:24px;font-weight:700;line-height:1;margin-bottom:2px;}
+        .st-c .lbl{font-size:12px;color:var(--g500);}
+
+        .tw{overflow-x:auto;}
+        table{width:100%;border-collapse:collapse;}
+        table th{padding:10px 14px;font-size:12px;font-weight:600;color:var(--g600);text-align:left;background:#f7f5f2;border-bottom:1px solid var(--g200);white-space:nowrap;}
+        table td{padding:12px 14px;font-size:13px;border-bottom:1px solid #f0f0f0;vertical-align:middle;}
+        table tr:hover td{background:#fefaf7;}
+        .cc{text-align:center;}
+        table input[type="checkbox"]{accent-color:var(--o);width:15px;height:15px;cursor:pointer;}
+
+        .uc{display:flex;align-items:center;gap:10px;}
+        .uc .av{width:30px;height:30px;border-radius:50%;color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;}
+        .uc .nm{font-weight:600;}.uc .em{font-size:11px;color:var(--g500);}
+        .bdg{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:12px;font-size:11px;font-weight:600;}
+        .b-a{background:var(--grn-bg);color:var(--grn);}.b-l{background:var(--red-bg);color:var(--red);}.b-p{background:var(--ylw-bg);color:var(--ylw);}.b-i{background:var(--g100);color:var(--g500);}
+        .bd{width:6px;height:6px;border-radius:50%;}
+        .rl{display:inline-block;padding:2px 8px;border-radius:3px;font-size:11px;font-weight:600;}
+        .r-f{background:#fce4ec;color:#c62828;}.r-m{background:var(--pur-bg);color:var(--pur);}.r-s{background:var(--blu-bg);color:var(--blu);}.r-v{background:var(--g100);color:var(--g600);}
+
+        .tabs{display:flex;border-bottom:2px solid var(--g200);margin-bottom:18px;}
+        .tab{padding:9px 18px;font-size:13px;font-weight:500;color:var(--g500);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;}
+        .tab:hover{color:var(--o);}.tab.on{color:var(--o);border-bottom-color:var(--o);font-weight:600;}
+        .pm table input[type="checkbox"]{width:16px;height:16px;}
+        .pm table td{text-align:center;}.pm table td:first-child{text-align:left;font-weight:600;font-size:13px;}
+
+        .fg{margin-bottom:16px;}.fl{display:block;font-size:12px;font-weight:600;color:var(--g700);margin-bottom:4px;}.fl .req{color:var(--red);}
+        .fc{width:100%;padding:8px 12px;border:1px solid var(--g300);border-radius:3px;font-size:13px;font-family:inherit;}.fc:focus{outline:none;border-color:var(--o);}
+        .fr{display:flex;gap:14px;}.fr .fg{flex:1;}
+
+        .bars{display:flex;align-items:flex-end;gap:10px;height:130px;padding:0 4px;}
+        .bg{display:flex;flex-direction:column;align-items:center;flex:1;}
+        .br{width:100%;max-width:34px;border-radius:3px 3px 0 0;position:relative;}
+        .br .v{position:absolute;top:-16px;left:50%;transform:translateX(-50%);font-size:10px;font-weight:700;color:var(--g700);white-space:nowrap;}
+        .bl{font-size:10px;color:var(--g500);margin-top:5px;}
+        .dn-w{display:flex;align-items:center;gap:20px;}
+        .dn{width:100px;height:100px;border-radius:50%;position:relative;display:flex;align-items:center;justify-content:center;}
+        .dn-c{width:60px;height:60px;background:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;}
+        .dn-l{display:flex;flex-direction:column;gap:7px;}
+        .dli{display:flex;align-items:center;gap:6px;font-size:12px;}
+        .dld{width:9px;height:9px;border-radius:2px;}.dlv{margin-left:auto;font-weight:700;min-width:32px;text-align:right;}
+        .tli{display:flex;gap:12px;padding:10px 0;position:relative;}
+        .tli::before{content:'';position:absolute;left:15px;top:34px;bottom:-10px;width:2px;background:var(--g200);}
+        .tli:last-child::before{display:none;}
+        .tld{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;z-index:1;font-size:12px;font-weight:700;}
+        .tlt{font-size:13px;color:var(--g700);line-height:1.4;}.tlt strong{color:var(--g800);}
+        .tlm{font-size:11px;color:var(--g400);margin-top:1px;}
+        .pg{display:flex;align-items:center;justify-content:space-between;padding:12px 18px;border-top:1px solid var(--g100);font-size:12px;color:var(--g500);}
+        .pgb{display:flex;gap:3px;}
+        .pgb button{width:28px;height:28px;border:1px solid var(--g200);background:#fff;border-radius:3px;cursor:pointer;font-size:12px;color:var(--g600);}
+        .pgb button.on{background:var(--o);color:#fff;border-color:var(--o);}
+        .g2{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+        .g32{display:grid;grid-template-columns:5fr 3fr;gap:18px;}
+
+        .mo{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:300;align-items:center;justify-content:center;}
+        .mo.show{display:flex;}
+        .mo-c{background:#fff;border-radius:4px;width:640px;max-height:88vh;overflow-y:auto;box-shadow:0 12px 40px rgba(0,0,0,.15);}
+        .mo-h{padding:18px 22px;border-bottom:1px solid var(--g200);display:flex;align-items:center;justify-content:space-between;}
+        .mo-h h3{font-size:16px;font-weight:700;}
+        .mo-x{background:none;border:none;font-size:20px;color:var(--g400);cursor:pointer;padding:4px 8px;}.mo-x:hover{color:var(--g700);}
+        .mo-b{padding:22px;}.mo-f{padding:14px 22px;border-top:1px solid var(--g200);display:flex;justify-content:flex-end;gap:8px;}
+
+        .perm-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;}
+        .perm-item{display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--g50);border-radius:3px;font-size:13px;cursor:pointer;border:1px solid var(--g200);}
+        .perm-item:hover{border-color:var(--o);}
+        .perm-item input{accent-color:var(--o);width:15px;height:15px;cursor:pointer;}
+        .perm-item .pi-label{flex:1;}.perm-item .pi-desc{font-size:10px;color:var(--g500);display:block;}
+
+        /* Welcome Mail Preview */
+        .mail-preview{border:1px solid var(--g200);border-radius:3px;padding:20px;background:#fff;margin-top:10px;}
+        .mail-preview .mail-hdr{font-size:12px;color:var(--g500);margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid var(--g200);}
+        .mail-preview .mail-hdr strong{color:var(--g800);}
+        .mail-preview .mail-body{font-size:13px;color:var(--g700);line-height:1.7;}
+        .mail-preview .mail-body .highlight{color:var(--o);font-weight:600;}
+        .mail-custom{margin-top:8px;}
+        .mail-custom textarea{width:100%;height:60px;border:1px solid var(--g300);border-radius:3px;padding:8px;font-size:12px;font-family:inherit;resize:vertical;}
+        .mail-custom textarea:focus{outline:none;border-color:var(--o);}
+
+        .toast{position:fixed;bottom:24px;right:24px;background:var(--g800);color:#fff;padding:12px 20px;border-radius:4px;font-size:13px;z-index:400;transform:translateY(80px);opacity:0;transition:all .3s;box-shadow:0 4px 16px rgba(0,0,0,.12);}
+        .toast.show{transform:translateY(0);opacity:1;}
+        .ap{display:none;}.ap.on{display:block;}
+    </style>
+</head>
+<body>
+
+<!-- ═══ HEADER (Digital Finance Portal 동일 구조) ═══ -->
+<header class="hdr">
+    <div class="hdr-logo" data-action="go" data-param="portal">
+        <svg width="46" height="32" viewBox="0 0 46 32" fill="none" xmlns="http://www.w3.org/2000/svg"><g clip-path="url(#cl)"><path fill-rule="evenodd" clip-rule="evenodd" d="M32.37 7c-.7 0-1.34.33-1.64.7v4.56l-2.86 3.89V7.3h-2.73l-4.53 7.63V7.3h-1.56l-4.1 1.02v1.07l2.24.24v9.36h2.9l4.34-7.26v7.26h3.18l4.4-5.78c1.75-2.24 2.37-3.15 2.37-4.24 0-1.08-.85-1.97-2-1.97zm9.65 9.95c-2.03 0-3.35-1.74-3.35-4.32 0-2.59 1-4.04 2.95-4.37l-.02 3.13c.66.39 1.2.56 1.84.56 1.26 0 2.09-.8 2.09-1.95 0-1.78-1.79-3-4.42-3-3.95 0-6.64 2.5-6.64 6.21 0 1.68.55 3.17 1.66 4.3 1.09 1.11 2.42 1.63 4.32 1.63 1.75 0 3.01-.3 5.19-1.33v-2.09c-1.8.89-2.67 1.22-3.61 1.22zM6.32 17.51c.3.02.45.02.64.02 2.33 0 3.59-1.48 3.59-4.32 0-2.39-1.03-3.67-2.9-3.67-.3 0-.6.04-1.19.12l-.04.01-.02 7.84zm0-8.93c2.11-1.28 2.84-1.5 3.91-1.5 2.5 0 4.34 2.35 4.34 5.59 0 3.76-2.46 6.28-6.34 6.28-.43 0-1.18-.02-1.93-.11l.02 3.78 1.88.44v1.08H.83v-1.08l1.69-.44V9.54H.64V8.41l4.51-1.39h1.17v1.56z" fill="#d04a02"/></g><defs><clipPath id="cl"><rect width="45" height="32" fill="white" transform="translate(.64)"/></clipPath></defs></svg>
+        <span class="nm">Digital Finance Portal</span>
+    </div>
+    <nav class="hdr-nav">
+        <a href="#" data-action="toast" data-param="Our Solutions">Our Solutions</a>
+        <a href="#" data-action="toast" data-param="Robotic">Robotic</a>
+        <a href="#" data-action="toast" data-param="XBRL">XBRL</a>
+        <a href="#" data-action="toast" data-param="Tax Hub">Tax Hub</a>
+        <a href="#" id="nav-ev" class="on" data-action="go" data-param="admin">Easy View</a>
+    </nav>
+    <div class="hdr-r">
+        <button class="hdr-back" id="hb" data-action="go" data-param="portal" style="display:none;">&#8592; 메인으로</button>
+        <div class="dd-w">
+            <button class="av-btn" data-action="dd-toggle">S</button>
+            <div class="dd" id="dd">
+                <div class="dd-u"><div class="av">S</div><div><div class="nm">Sou-Jung Park</div><div class="info">삼일회계법인<br>sou-jung.park@pwc.com</div><span class="rl">관리자</span></div></div>
+                <div class="dd-i" data-action="dd-toast" data-param="내 프로필">내 프로필</div>
+                <div class="dd-i" data-action="dd-go" data-param="admin">Easy View Admin</div>
+                <div class="dd-i dd-so" data-action="dd-toast" data-param="SIGN OUT">SIGN OUT</div>
+            </div>
+        </div>
+    </div>
+</header>
+
+<!-- ═══ PORTAL ═══ -->
+<div class="mode on" id="mode-portal">
+    <section class="p-hero"><div class="p-hero-in">
+        <h1>비감사용역의 새로운 기준,<br><em>Easy View</em></h1>
+        <p>비감사용역에 특화된 보안 포털을 통해 고객사별 사용자 등록, 권한 관리, 리포트 접근 제어를 한 곳에서 관리합니다.</p>
+        <div class="hero-btns">
+            <button class="bh bh-d" data-action="go" data-param="admin">Easy View Admin</button>
+            <button class="bh bh-o" data-action="toast" data-param="리포트 바로가기">리포트 바로가기</button>
+        </div>
+    </div></section>
+    <section class="p-sec">
+        <div class="p-sh"><span class="bar"></span><h2>Admin Management</h2><div class="sub">관리자 주요 기능을 빠르게 이용하세요.</div></div>
+        <div class="p-cards">
+            <div class="p-card c-or" data-n="01" onclick="go('admin');ap('ap-acc')"><h3>고객사 계정 관리</h3><ul><li>Client 이메일 기반 사용자 등록</li><li>그룹 배정 및 상세 권한 부여</li><li>Bulk Registration (CSV 일괄)</li><li>사용자 추가 신청 관리</li></ul></div>
+            <div class="p-card c-gr" data-n="02" onclick="go('admin');ap('ap-perm')"><h3>리포트 접근 권한</h3><ul><li>리포트별 역할 기반 체크박스 매트릭스</li><li>다운로드/인쇄/공유 세부 제어</li><li>PwC 3단계 + Client 3단계</li><li>고객사별 개별 설정</li></ul></div>
+            <div class="p-card c-dk" data-n="03" onclick="go('admin');ap('ap-sec')"><h3>보안 / 로그</h3><ul><li>계정 잠금 / 비밀번호 초기화</li><li>로그인 실패 모니터링 그래프</li><li>방문이력 및 변경 로그</li><li>실시간 Activity Timeline</li></ul></div>
+        </div>
+    </section>
+    <section class="p-stats"><div class="p-stats-in">
+        <h3><strong>삼일PwC</strong>는 Digital Solution을 통해 고객에게 맞춤형 서비스를 제공합니다.</h3>
+        <div class="desc">삼일PwC의 전문가와 함께 귀사의 비즈니스를 한 단계 더 발전시키세요.</div>
+        <div class="p-sg"><div class="psc"><div class="num">120+</div><div class="lbl">등록 고객사</div></div><div class="psc"><div class="num">4,500+</div><div class="lbl">전체 이용자 수</div></div><div class="psc"><div class="num">850+</div><div class="lbl">Engagement</div></div><div class="psc"><div class="num">99.9%</div><div class="lbl">서비스 가동률</div></div></div>
+        <div class="p-em" onclick="toast('이메일 클라이언트가 열립니다.')">kr_easyview_support@pwc.com</div>
+    </div></section>
+    <footer class="p-ft"><span>© 2026 PwC. All rights reserved. PwC refers to the US member firm of the PwC network or one of its subsidiaries or affiliates.</span><div><a href="#">Privacy policy</a> | <a href="#">Cookie policy</a> | <a href="#">OSS</a></div></footer>
+</div>
+
+<!-- ═══ ADMIN ═══ -->
+<div class="mode" id="mode-admin">
+<div class="adm-w">
+    <aside class="sb">
+        <div class="sb-s">Overview</div>
+        <div class="sb-i on" onclick="ap('ap-dash',this)"><span class="si" style="background:var(--o);"></span> Dashboard</div>
+        <div class="sb-s">User Management</div>
+        <div class="sb-i" onclick="ap('ap-acc',this)"><span class="si" style="background:var(--blu);"></span> 고객사 계정 관리<span class="bdg">3</span></div>
+        <div class="sb-i" onclick="ap('ap-grp',this)"><span class="si" style="background:var(--pur);"></span> 그룹 관리</div>
+        <div class="sb-i" onclick="ap('ap-pwc',this)"><span class="si" style="background:var(--g600);"></span> PwC 내부 사용자</div>
+        <div class="sb-i" onclick="ap('ap-req',this)"><span class="si" style="background:var(--ylw);"></span> 사용자 추가 신청<span class="bdg">2</span></div>
+        <div class="sb-s">Access Control</div>
+        <div class="sb-i" onclick="ap('ap-perm',this)"><span class="si" style="background:var(--o);"></span> 리포트 접근 권한</div>
+        <div class="sb-i" onclick="ap('ap-roles',this)"><span class="si" style="background:var(--grn);"></span> 역할(Role) 정의</div>
+        <div class="sb-s">Security &amp; Audit</div>
+        <div class="sb-i" onclick="ap('ap-sec',this)"><span class="si" style="background:var(--red);"></span> 계정 상태 / 보안<span class="bdg">2</span></div>
+        <div class="sb-i" onclick="ap('ap-logs',this)"><span class="si" style="background:var(--g500);"></span> 로그 / 방문이력</div>
+    </aside>
+    <main class="adm-m">
+
+<!-- Dashboard -->
+<div class="ap on" id="ap-dash">
+    <div class="ph"><div><h1>Dashboard</h1><div class="desc">Easy View 관리 현황을 한눈에 확인하세요.</div></div><div class="pha"><button class="btn btn-o" onclick="toast('리포트 다운로드')">리포트</button><button class="btn btn-p" onclick="mOpen('m-add')">+ 사용자 등록</button></div></div>
+    <div class="st-g">
+        <div class="st-c"><div class="top"><div class="sic" style="background:var(--ol);color:var(--o);">U</div><span class="tr tu">+12%</span></div><div class="val">4,521</div><div class="lbl">전체 사용자</div></div>
+        <div class="st-c"><div class="top"><div class="sic" style="background:var(--grn-bg);color:var(--grn);">A</div><span class="tr tu">+8%</span></div><div class="val">3,847</div><div class="lbl">활성 계정</div></div>
+        <div class="st-c"><div class="top"><div class="sic" style="background:var(--blu-bg);color:var(--blu);">C</div></div><div class="val">156</div><div class="lbl">등록 고객사</div></div>
+        <div class="st-c"><div class="top"><div class="sic" style="background:var(--red-bg);color:var(--red);">!</div><span class="tr td">-3</span></div><div class="val">14</div><div class="lbl">로그인 실패(오늘)</div></div>
+    </div>
+    <div class="g32">
+        <div class="cd"><div class="cd-h"><h3>주간 방문자 추이</h3></div><div class="cd-b">
+            <div class="bars"><div class="bg"><div class="br" style="height:50px;background:var(--o);"><span class="v">342</span></div><span class="bl">월</span></div><div class="bg"><div class="br" style="height:76px;background:var(--o);"><span class="v">512</span></div><span class="bl">화</span></div><div class="bg"><div class="br" style="height:100px;background:var(--o);"><span class="v">687</span></div><span class="bl">수</span></div><div class="bg"><div class="br" style="height:88px;background:var(--o);"><span class="v">598</span></div><span class="bl">목</span></div><div class="bg"><div class="br" style="height:120px;background:var(--o);"><span class="v">802</span></div><span class="bl">금</span></div><div class="bg"><div class="br" style="height:35px;background:var(--g300);"><span class="v">128</span></div><span class="bl">토</span></div><div class="bg"><div class="br" style="height:22px;background:var(--g300);"><span class="v">45</span></div><span class="bl">일</span></div></div>
+        </div></div>
+        <div class="cd"><div class="cd-h"><h3>권한 분포</h3></div><div class="cd-b">
+            <div class="dn-w"><div class="dn" style="background:conic-gradient(var(--red) 0% 5%,var(--pur) 5% 15%,var(--blu) 15% 45%,var(--g400) 45% 65%,var(--o) 65% 100%);"><div class="dn-c">4.5K</div></div>
+            <div class="dn-l"><div class="dli"><span class="dld" style="background:var(--red);"></span>Full Access<span class="dlv">5%</span></div><div class="dli"><span class="dld" style="background:var(--pur);"></span>Manager<span class="dlv">10%</span></div><div class="dli"><span class="dld" style="background:var(--blu);"></span>Standard<span class="dlv">30%</span></div><div class="dli"><span class="dld" style="background:var(--g400);"></span>View Only<span class="dlv">20%</span></div><div class="dli"><span class="dld" style="background:var(--o);"></span>Client<span class="dlv">35%</span></div></div></div>
+        </div></div>
+    </div>
+    <div class="g2" style="margin-top:18px;">
+        <div class="cd"><div class="cd-h"><h3>최근 등록 사용자</h3><button class="btn btn-g btn-s" onclick="ap('ap-acc')">전체보기 ›</button></div><div class="cd-f tw"><table><thead><tr><th>사용자</th><th>고객사</th><th>권한</th><th>등록일</th></tr></thead><tbody>
+            <tr><td><div class="uc"><div class="av" style="background:var(--blu);">GI</div><div><div class="nm">Gyumin Im</div><div class="em">imgyumin@poscointl.com</div></div></div></td><td>POSCO INT'L</td><td><span class="rl r-v">View Only</span></td><td>04.16</td></tr>
+            <tr><td><div class="uc"><div class="av" style="background:var(--grn);">HA</div><div><div class="nm">Hongkyu Ahn</div><div class="em">ahnhk@seah.co.kr</div></div></div></td><td>세아베스틸지주</td><td><span class="rl r-s">Standard</span></td><td>04.15</td></tr>
+            <tr><td><div class="uc"><div class="av" style="background:var(--pur);">SM</div><div><div class="nm">Soojin Moon</div><div class="em">soojin.moon@seah.global</div></div></div></td><td>SeAH Global</td><td><span class="rl r-m">Manager</span></td><td>04.14</td></tr>
+        </tbody></table></div></div>
+        <div class="cd"><div class="cd-h"><h3>최근 활동</h3></div><div class="cd-b">
+            <div class="tli"><div class="tld" style="background:var(--grn-bg);color:var(--grn);">+</div><div><div class="tlt"><strong>Gyumin Im</strong> 계정 등록</div><div class="tlm">10분 전</div></div></div>
+            <div class="tli"><div class="tld" style="background:var(--ol);color:var(--o);">P</div><div><div class="tlt"><strong>세아베스틸지주</strong> 리포트 권한 변경</div><div class="tlm">32분 전</div></div></div>
+            <div class="tli"><div class="tld" style="background:var(--red-bg);color:var(--red);">!</div><div><div class="tlt"><strong>Ki-hyeon Lee</strong> 5회 실패 → 잠금</div><div class="tlm">1시간 전</div></div></div>
+            <div class="tli"><div class="tld" style="background:var(--blu-bg);color:var(--blu);">R</div><div><div class="tlt"><strong>Chanwoo Lee</strong> 비밀번호 초기화</div><div class="tlm">2시간 전</div></div></div>
+        </div></div>
+    </div>
+</div>
+
+<!-- 고객사 계정 관리 -->
+<div class="ap" id="ap-acc">
+    <div class="ph"><div><h1>고객사 계정 관리</h1><div class="desc">고객사 사용자를 등록하고 그룹 및 권한을 관리합니다.</div></div><div class="pha"><button class="btn btn-o" onclick="toast('CSV 내보내기')">내보내기</button><button class="btn btn-o" onclick="toast('일괄 등록 화면')">일괄 등록</button><button class="btn btn-p" onclick="mOpen('m-add')">+ 사용자 등록</button></div></div>
+    <div class="cd"><div class="cd-h"><div style="display:flex;gap:8px;"><select class="fc" style="width:140px;padding:6px 10px;"><option>전체 고객사</option><option>세아베스틸지주</option><option>POSCO INT'L</option></select><select class="fc" style="width:110px;padding:6px 10px;"><option>전체 상태</option><option>Active</option><option>Locked</option><option>Pending</option></select><select class="fc" style="width:120px;padding:6px 10px;"><option>전체 권한</option><option>Full Access</option><option>Manager</option><option>Standard</option><option>View Only</option></select></div><div style="display:flex;align-items:center;gap:6px;border:1px solid var(--g200);border-radius:3px;padding:5px 10px;width:190px;"><input style="border:none;outline:none;font-size:12px;width:100%;font-family:inherit;" placeholder="이름, 이메일 검색..."></div></div>
+    <div class="cd-f tw"><table><thead><tr><th style="width:34px" class="cc"><input type="checkbox"></th><th>사용자</th><th>고객사</th><th>그룹</th><th>권한</th><th>상태</th><th>최종 로그인</th><th style="width:100px">액션</th></tr></thead><tbody>
+        <tr><td class="cc"><input type="checkbox"></td><td><div class="uc"><div class="av" style="background:var(--blu);">GI</div><div><div class="nm">Gyumin Im</div><div class="em">imgyumin@poscointl.com</div></div></div></td><td>POSCO INT'L</td><td>POSCO 재무팀</td><td><span class="rl r-v">View Only</span></td><td><span class="bdg b-a"><span class="bd" style="background:var(--grn);"></span>Active</span></td><td>04.16 11:13</td><td><button class="btn btn-g btn-s" onclick="toast('상세 보기')">상세</button><button class="btn btn-g btn-s" onclick="toast('편집')">편집</button></td></tr>
+        <tr><td class="cc"><input type="checkbox"></td><td><div class="uc"><div class="av" style="background:var(--grn);">HA</div><div><div class="nm">Hongkyu Ahn</div><div class="em">ahnhk@seah.co.kr</div></div></div></td><td>세아베스틸지주</td><td>SGV 베트남법인</td><td><span class="rl r-s">Standard</span></td><td><span class="bdg b-a"><span class="bd" style="background:var(--grn);"></span>Active</span></td><td>04.15 14:20</td><td><button class="btn btn-g btn-s" onclick="toast('상세 보기')">상세</button><button class="btn btn-g btn-s" onclick="toast('편집')">편집</button></td></tr>
+        <tr><td class="cc"><input type="checkbox"></td><td><div class="uc"><div class="av" style="background:var(--red);">KL</div><div><div class="nm">Ki-hyeon Lee</div><div class="em">wetnose@seah.co.kr</div></div></div></td><td>세아베스틸지주</td><td>Holdings 본사</td><td><span class="rl r-v">View Only</span></td><td><span class="bdg b-l"><span class="bd" style="background:var(--red);"></span>Locked</span></td><td>-</td><td><button class="btn btn-g btn-s" onclick="toast('상세 보기')">상세</button><button class="btn btn-ok btn-s" onclick="toast('잠금 해제되었습니다.')">잠금해제</button></td></tr>
+        <tr><td class="cc"><input type="checkbox"></td><td><div class="uc"><div class="av" style="background:var(--ylw);">DC</div><div><div class="nm">David Chen</div><div class="em">d.chen@globalpartner.com</div></div></div></td><td>Global Partner</td><td>미배정</td><td><span class="rl r-v">View Only</span></td><td><span class="bdg b-p"><span class="bd" style="background:var(--ylw);"></span>Pending</span></td><td>-</td><td><button class="btn btn-g btn-s" onclick="toast('상세 보기')">상세</button><button class="btn btn-p btn-s" onclick="toast('승인 처리되었습니다.')">승인</button></td></tr>
+    </tbody></table></div>
+    <div class="pg"><span>4건 중 1-4</span><div class="pgb"><button>‹</button><button class="on">1</button><button>2</button><button>›</button></div></div></div>
+</div>
+
+<!-- 그룹 관리 -->
+<div class="ap" id="ap-grp">
+    <div class="ph"><div><h1>그룹 관리</h1><div class="desc">고객사를 그룹으로 분류하고 그룹 단위 접근 권한을 제어합니다.</div></div><div class="pha"><button class="btn btn-p" onclick="toast('새 그룹 생성')">+ 그룹 생성</button></div></div>
+    <div class="cd"><div class="cd-f tw"><table><thead><tr><th>그룹명</th><th>고객사</th><th>사용자</th><th>기본 권한</th><th>리포트</th><th>생성일</th><th>액션</th></tr></thead><tbody>
+        <tr><td style="font-weight:700;">전체 (모든 리포트)</td><td>공통</td><td>-</td><td><span class="rl r-v">View Only</span></td><td>전체</td><td>-</td><td><span style="font-size:12px;color:var(--g400);">시스템</span></td></tr>
+        <tr><td style="font-weight:700;">세아베스틸지주 - Holdings 본사</td><td>세아베스틸지주</td><td>8명</td><td><span class="rl r-s">Standard</span></td><td>12개</td><td>2025.12.01</td><td><button class="btn btn-g btn-s" onclick="toast('그룹 편집')">편집</button></td></tr>
+        <tr><td style="font-weight:700;">세아베스틸지주 - SGV 베트남법인</td><td>세아베스틸지주</td><td>3명</td><td><span class="rl r-v">View Only</span></td><td>5개</td><td>2025.12.01</td><td><button class="btn btn-g btn-s" onclick="toast('그룹 편집')">편집</button></td></tr>
+        <tr><td style="font-weight:700;">POSCO 재무팀</td><td>POSCO INT'L</td><td>5명</td><td><span class="rl r-v">View Only</span></td><td>3개</td><td>2026.02.20</td><td><button class="btn btn-g btn-s" onclick="toast('그룹 편집')">편집</button></td></tr>
+    </tbody></table></div></div>
+</div>
+
+<!-- PwC 내부 사용자 -->
+<div class="ap" id="ap-pwc">
+    <div class="ph"><div><h1>PwC 내부 사용자</h1><div class="desc">PwC 내부 접근 권한 (View Only / Standard / Full Access)</div></div></div>
+    <div class="tabs"><div class="tab on">전체 (18)</div><div class="tab">Full Access (2)</div><div class="tab">Standard (8)</div><div class="tab">View Only (8)</div></div>
+    <div class="cd"><div class="cd-f tw"><table><thead><tr><th style="width:34px" class="cc"><input type="checkbox"></th><th>사용자</th><th>Connect Role</th><th>내부 권한</th><th>최종 접속</th><th>액션</th></tr></thead><tbody>
+        <tr><td class="cc"><input type="checkbox"></td><td><div class="uc"><div class="av" style="background:var(--red);">SP</div><div><div class="nm">Sou-Jung Park</div><div class="em">sou-jung.park@pwc.com</div></div></div></td><td>PwC Administrator</td><td><span class="rl r-f">Full Access</span></td><td>04.16</td><td><button class="btn btn-g btn-s" onclick="toast('편집')">편집</button></td></tr>
+        <tr><td class="cc"><input type="checkbox"></td><td><div class="uc"><div class="av" style="background:var(--blu);">YC</div><div><div class="nm">Yuna Cho</div><div class="em">yuna.cho@pwc.com</div></div></div></td><td>PwC SDC User</td><td><span class="rl r-s">Standard</span></td><td>04.13</td><td><button class="btn btn-g btn-s" onclick="toast('편집')">편집</button></td></tr>
+        <tr><td class="cc"><input type="checkbox"></td><td><div class="uc"><div class="av" style="background:var(--g400);">DY</div><div><div class="nm">Dong-Yeon Yoo</div><div class="em">dongyeon.yoo@pwc.com</div></div></div></td><td>PwC - View Only</td><td><span class="rl r-v">View Only</span></td><td>2024.06</td><td><button class="btn btn-g btn-s" onclick="toast('편집')">편집</button></td></tr>
+    </tbody></table></div></div>
+</div>
+
+<!-- 사용자 추가 신청 -->
+<div class="ap" id="ap-req">
+    <div class="ph"><div><h1>사용자 추가 신청</h1><div class="desc">기존 사용자가 새로운 사용자 추가를 요청한 내역을 관리합니다.</div></div></div>
+    <div class="cd"><div class="cd-f tw"><table><thead><tr><th>신청번호</th><th>신청자</th><th>추가 대상</th><th>대상 이메일</th><th>사유</th><th>신청일</th><th>상태</th><th>처리</th></tr></thead><tbody>
+        <tr><td style="font-weight:600;">#REQ-012</td><td><div class="uc"><div class="av" style="background:var(--grn);">HA</div><div><div class="nm">Hongkyu Ahn</div></div></div></td><td>Minh Tran</td><td>minh.tran@seahgv.com</td><td>SGV 신규 입사자</td><td>04.16</td><td><span class="bdg b-p"><span class="bd" style="background:var(--ylw);"></span>대기</span></td><td><button class="btn btn-p btn-s" onclick="toast('승인 처리되었습니다.')">승인</button> <button class="btn btn-o btn-s" onclick="toast('반려 처리되었습니다.')">반려</button></td></tr>
+        <tr><td style="font-weight:600;">#REQ-011</td><td><div class="uc"><div class="av" style="background:var(--pur);">SM</div><div><div class="nm">Soojin Moon</div></div></div></td><td>James Park</td><td>james.park@seah.global</td><td>SGI 미국법인 합류</td><td>04.15</td><td><span class="bdg b-p"><span class="bd" style="background:var(--ylw);"></span>대기</span></td><td><button class="btn btn-p btn-s" onclick="toast('승인 처리되었습니다.')">승인</button> <button class="btn btn-o btn-s" onclick="toast('반려 처리되었습니다.')">반려</button></td></tr>
+    </tbody></table></div></div>
+</div>
+
+<!-- 리포트 접근 권한 -->
+<div class="ap" id="ap-perm">
+    <div class="ph"><div><h1>리포트 접근 권한</h1><div class="desc">리포트별 역할 기반 세부 접근 권한을 체크박스로 커스텀 설정합니다.</div></div><div class="pha"><button class="btn btn-p" onclick="toast('권한 설정이 저장되었습니다.')">변경사항 저장</button></div></div>
+    <div class="cd"><div class="cd-h"><h3>리포트 x 역할 접근 매트릭스</h3><select class="fc" style="width:170px;padding:6px 10px;" onchange="toast('고객사가 변경되었습니다.')"><option>세아베스틸지주</option><option>POSCO INT'L</option></select></div>
+    <div class="cd-f pm tw"><table><thead><tr><th>리포트</th><th class="cc">Full Access<br><label style="font-weight:400;font-size:10px;cursor:pointer;"><input type="checkbox" checked onchange="colToggle(this,1)"> 전체</label></th><th class="cc">Manager<br><label style="font-weight:400;font-size:10px;cursor:pointer;"><input type="checkbox" checked onchange="colToggle(this,2)"> 전체</label></th><th class="cc">Standard<br><label style="font-weight:400;font-size:10px;cursor:pointer;"><input type="checkbox" onchange="colToggle(this,3)"> 전체</label></th><th class="cc">View Only<br><label style="font-weight:400;font-size:10px;cursor:pointer;"><input type="checkbox" onchange="colToggle(this,4)"> 전체</label></th><th class="cc">Client Mgr<br><label style="font-weight:400;font-size:10px;cursor:pointer;"><input type="checkbox" onchange="colToggle(this,5)"> 전체</label></th><th class="cc">Client View<br><label style="font-weight:400;font-size:10px;cursor:pointer;"><input type="checkbox" onchange="colToggle(this,6)"> 전체</label></th></tr></thead><tbody>
+        <tr><td>연결재무제표</td><td class="cc"><input type="checkbox" checked></td><td class="cc"><input type="checkbox" checked></td><td class="cc"><input type="checkbox" checked></td><td class="cc"><input type="checkbox" checked></td><td class="cc"><input type="checkbox" checked></td><td class="cc"><input type="checkbox" checked></td></tr>
+        <tr><td>검토조서 (Draft)</td><td class="cc"><input type="checkbox" checked></td><td class="cc"><input type="checkbox" checked></td><td class="cc"><input type="checkbox" checked></td><td class="cc"><input type="checkbox"></td><td class="cc"><input type="checkbox"></td><td class="cc"><input type="checkbox"></td></tr>
+        <tr><td>내부회계관리 보고서</td><td class="cc"><input type="checkbox" checked></td><td class="cc"><input type="checkbox" checked></td><td class="cc"><input type="checkbox"></td><td class="cc"><input type="checkbox"></td><td class="cc"><input type="checkbox" checked></td><td class="cc"><input type="checkbox"></td></tr>
+        <tr><td>세무 조정 명세서</td><td class="cc"><input type="checkbox" checked></td><td class="cc"><input type="checkbox" checked></td><td class="cc"><input type="checkbox" checked></td><td class="cc"><input type="checkbox"></td><td class="cc"><input type="checkbox"></td><td class="cc"><input type="checkbox"></td></tr>
+        <tr><td>의견서 (Final)</td><td class="cc"><input type="checkbox" checked></td><td class="cc"><input type="checkbox" checked></td><td class="cc"><input type="checkbox" checked></td><td class="cc"><input type="checkbox" checked></td><td class="cc"><input type="checkbox" checked></td><td class="cc"><input type="checkbox" checked></td></tr>
+        <tr><td>자금 현황 리포트</td><td class="cc"><input type="checkbox" checked></td><td class="cc"><input type="checkbox"></td><td class="cc"><input type="checkbox"></td><td class="cc"><input type="checkbox"></td><td class="cc"><input type="checkbox"></td><td class="cc"><input type="checkbox"></td></tr>
+    </tbody></table></div></div>
+    <div class="cd"><div class="cd-h"><h3>세부 기능 권한 (다운로드 / 인쇄 / 공유)</h3></div>
+    <div class="cd-f pm tw"><table id="tbl-detail"><thead><tr><th>리포트</th><th class="cc">열람<br><label style="font-weight:400;font-size:10px;cursor:pointer;"><input type="checkbox" checked onchange="colToggle2(this,1)"> 전체</label></th><th class="cc">다운로드<br><label style="font-weight:400;font-size:10px;cursor:pointer;"><input type="checkbox" onchange="colToggle2(this,2)"> 전체</label></th><th class="cc">인쇄<br><label style="font-weight:400;font-size:10px;cursor:pointer;"><input type="checkbox" onchange="colToggle2(this,3)"> 전체</label></th><th class="cc">공유<br><label style="font-weight:400;font-size:10px;cursor:pointer;"><input type="checkbox" onchange="colToggle2(this,4)"> 전체</label></th><th class="cc">코멘트<br><label style="font-weight:400;font-size:10px;cursor:pointer;"><input type="checkbox" onchange="colToggle2(this,5)"> 전체</label></th></tr></thead><tbody>
+        <tr><td>연결재무제표</td><td class="cc"><input type="checkbox" checked></td><td class="cc"><input type="checkbox" checked></td><td class="cc"><input type="checkbox" checked></td><td class="cc"><input type="checkbox"></td><td class="cc"><input type="checkbox" checked></td></tr>
+        <tr><td>검토조서 (Draft)</td><td class="cc"><input type="checkbox" checked></td><td class="cc"><input type="checkbox"></td><td class="cc"><input type="checkbox"></td><td class="cc"><input type="checkbox"></td><td class="cc"><input type="checkbox"></td></tr>
+        <tr><td>의견서 (Final)</td><td class="cc"><input type="checkbox" checked></td><td class="cc"><input type="checkbox" checked></td><td class="cc"><input type="checkbox" checked></td><td class="cc"><input type="checkbox" checked></td><td class="cc"><input type="checkbox" checked></td></tr>
+        <tr><td>세무 조정 명세서</td><td class="cc"><input type="checkbox" checked></td><td class="cc"><input type="checkbox" checked></td><td class="cc"><input type="checkbox"></td><td class="cc"><input type="checkbox"></td><td class="cc"><input type="checkbox"></td></tr>
+        <tr><td>자금 현황 리포트</td><td class="cc"><input type="checkbox" checked></td><td class="cc"><input type="checkbox"></td><td class="cc"><input type="checkbox"></td><td class="cc"><input type="checkbox"></td><td class="cc"><input type="checkbox"></td></tr>
+    </tbody></table></div></div>
+</div>
+
+<!-- 역할 정의 -->
+<div class="ap" id="ap-roles">
+    <div class="ph"><div><h1>역할(Role) 정의</h1><div class="desc">PwC 내부 및 고객사에 적용할 역할 템플릿</div></div></div>
+    <div class="g2">
+        <div class="cd"><div class="cd-h"><h3>PwC 내부 역할</h3></div><div class="cd-b" style="display:flex;flex-direction:column;gap:12px;">
+            <div style="padding:14px;background:var(--red-bg);border-radius:3px;border-left:3px solid var(--red);"><div style="font-weight:700;margin-bottom:2px;">Full Access</div><div style="font-size:12px;color:var(--g600);">모든 리포트 열람/수정/삭제, 사용자 관리, 시스템 설정</div></div>
+            <div style="padding:14px;background:var(--blu-bg);border-radius:3px;border-left:3px solid var(--blu);"><div style="font-weight:700;margin-bottom:2px;">Standard</div><div style="font-size:12px;color:var(--g600);">배정된 리포트 열람/다운로드, 코멘트, 제한적 편집</div></div>
+            <div style="padding:14px;background:var(--g100);border-radius:3px;border-left:3px solid var(--g400);"><div style="font-weight:700;margin-bottom:2px;">View Only</div><div style="font-size:12px;color:var(--g600);">배정된 리포트 열람만 가능</div></div>
+        </div></div>
+        <div class="cd"><div class="cd-h"><h3>고객사(Client) 역할</h3></div><div class="cd-b" style="display:flex;flex-direction:column;gap:12px;">
+            <div style="padding:14px;background:var(--pur-bg);border-radius:3px;border-left:3px solid var(--pur);"><div style="font-weight:700;margin-bottom:2px;">Client Manager</div><div style="font-size:12px;color:var(--g600);">자사 리포트 열람/다운로드, Request 관리</div></div>
+            <div style="padding:14px;background:var(--ol);border-radius:3px;border-left:3px solid var(--o);"><div style="font-weight:700;margin-bottom:2px;">Client Standard</div><div style="font-size:12px;color:var(--g600);">배정된 리포트 열람/다운로드, Request 요청</div></div>
+            <div style="padding:14px;background:var(--g100);border-radius:3px;border-left:3px solid var(--g400);"><div style="font-weight:700;margin-bottom:2px;">Client View Only</div><div style="font-size:12px;color:var(--g600);">배정 리포트 열람만 가능</div></div>
+        </div></div>
+    </div>
+</div>
+
+<!-- 계정 상태 / 보안 -->
+<div class="ap" id="ap-sec">
+    <div class="ph"><div><h1>계정 상태 / 보안</h1><div class="desc">계정 상태, 비밀번호, 로그인 실패를 모니터링합니다.</div></div></div>
+    <div class="tabs"><div class="tab on" onclick="stab(this,'sa')">계정 상태</div><div class="tab" onclick="stab(this,'sp')">비밀번호 관리</div><div class="tab" onclick="stab(this,'sf')">로그인 실패 로그</div></div>
+    <div id="sa"><div class="cd"><div class="cd-f tw"><table><thead><tr><th>사용자</th><th>계정 상태</th><th>Trust Level</th><th>비밀번호 만료</th><th>2FA</th><th>액션</th></tr></thead><tbody>
+        <tr><td><div class="uc"><div class="av" style="background:var(--blu);">GI</div><div><div class="nm">Gyumin Im</div><div class="em">imgyumin@poscointl.com</div></div></div></td><td><span class="bdg b-a"><span class="bd" style="background:var(--grn);"></span>Active</span></td><td>IA2</td><td>2026.08.25</td><td><span class="bdg b-a">ON</span></td><td><button class="btn btn-g btn-s" onclick="toast('Disable 처리')">Disable</button><button class="btn btn-g btn-s" onclick="toast('Suspend 처리')">Suspend</button></td></tr>
+        <tr><td><div class="uc"><div class="av" style="background:var(--red);">KL</div><div><div class="nm">Ki-hyeon Lee</div><div class="em">wetnose@seah.co.kr</div></div></div></td><td><span class="bdg b-l"><span class="bd" style="background:var(--red);"></span>Locked</span></td><td>IA2</td><td>2026.06.15</td><td><span class="bdg b-i">OFF</span></td><td><button class="btn btn-ok btn-s" onclick="toast('Enable 처리')">Enable</button><button class="btn btn-g btn-s" onclick="toast('PW 초기화 완료')">PW 초기화</button></td></tr>
+    </tbody></table></div></div></div>
+    <div id="sp" style="display:none;"><div class="cd"><div class="cd-h"><h3>비밀번호 정책</h3></div><div class="cd-b"><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;"><div style="padding:12px;background:var(--g50);border-radius:3px;"><strong>만료 주기:</strong> 180일</div><div style="padding:12px;background:var(--g50);border-radius:3px;"><strong>최소 길이:</strong> 12자</div><div style="padding:12px;background:var(--g50);border-radius:3px;"><strong>실패 허용:</strong> 5회 후 잠금</div><div style="padding:12px;background:var(--g50);border-radius:3px;"><strong>잠금 해제:</strong> 관리자 승인</div></div></div></div></div>
+    <div id="sf" style="display:none;">
+        <div class="cd"><div class="cd-h"><h3>최근 30일 로그인 실패 추이</h3></div><div class="cd-b"><div class="bars" style="height:90px;"><div class="bg"><div class="br" style="height:15px;background:var(--o);"></div><span class="bl">3/18</span></div><div class="bg"><div class="br" style="height:8px;background:var(--o);"></div><span class="bl">3/21</span></div><div class="bg"><div class="br" style="height:38px;background:var(--red);"></div><span class="bl">3/25</span></div><div class="bg"><div class="br" style="height:18px;background:var(--o);"></div><span class="bl">3/28</span></div><div class="bg"><div class="br" style="height:8px;background:var(--o);"></div><span class="bl">4/01</span></div><div class="bg"><div class="br" style="height:30px;background:var(--red);"></div><span class="bl">4/10</span></div><div class="bg"><div class="br" style="height:48px;background:var(--red);"></div><span class="bl">4/16</span></div></div></div></div>
+        <div class="cd"><div class="cd-f tw"><table><thead><tr><th>일시</th><th>사용자</th><th>IP</th><th>사유</th><th>연속</th><th>결과</th></tr></thead><tbody>
+            <tr><td>04.16 14:32</td><td><strong>Ki-hyeon Lee</strong></td><td>203.142.56.xx</td><td>잘못된 비밀번호</td><td>5회</td><td><span class="bdg b-l">잠금</span></td></tr>
+            <tr><td>04.16 14:30</td><td><strong>Ki-hyeon Lee</strong></td><td>203.142.56.xx</td><td>잘못된 비밀번호</td><td>4회</td><td><span class="bdg b-p">경고</span></td></tr>
+        </tbody></table></div></div>
+    </div>
+</div>
+
+<!-- 로그 / 방문이력 -->
+<div class="ap" id="ap-logs">
+    <div class="ph"><div><h1>로그 / 방문이력</h1><div class="desc">사용자 로그인, 방문 기록, 주요 변경 이력</div></div><div class="pha"><input type="date" class="fc" style="width:130px;padding:6px 10px;" value="2026-04-10"><span style="color:var(--g400);">~</span><input type="date" class="fc" style="width:130px;padding:6px 10px;" value="2026-04-16"><button class="btn btn-o" onclick="toast('조회 완료')">조회</button></div></div>
+    <div class="cd"><div class="cd-h"><h3>일별 방문자</h3></div><div class="cd-b"><div class="bars" style="height:110px;"><div class="bg"><div class="br" style="height:52px;background:var(--o);"><span class="v">182</span></div><span class="bl">4/10</span></div><div class="bg"><div class="br" style="height:64px;background:var(--o);"><span class="v">231</span></div><span class="bl">4/11</span></div><div class="bg"><div class="br" style="height:28px;background:var(--g300);"><span class="v">56</span></div><span class="bl">4/12</span></div><div class="bg"><div class="br" style="height:20px;background:var(--g300);"><span class="v">32</span></div><span class="bl">4/13</span></div><div class="bg"><div class="br" style="height:78px;background:var(--o);"><span class="v">298</span></div><span class="bl">4/14</span></div><div class="bg"><div class="br" style="height:94px;background:var(--o);"><span class="v">356</span></div><span class="bl">4/15</span></div><div class="bg"><div class="br" style="height:105px;background:var(--o);"><span class="v">402</span></div><span class="bl">4/16</span></div></div></div></div>
+    <div class="cd"><div class="cd-h"><h3>변경 로그 (Audit Trail)</h3></div><div class="cd-f tw"><table><thead><tr><th>일시</th><th>수행자</th><th>유형</th><th>상세</th><th>대상</th><th>IP</th></tr></thead><tbody>
+        <tr><td>04.16 11:13</td><td>System</td><td><span class="bdg" style="background:var(--grn-bg);color:var(--grn);">로그인</span></td><td>로그인 성공</td><td>Gyumin Im</td><td>211.34.xx</td></tr>
+        <tr><td>04.16 09:35</td><td>Sou-Jung Park</td><td><span class="bdg" style="background:var(--blu-bg);color:var(--blu);">등록</span></td><td>신규 사용자 등록</td><td>Gyumin Im</td><td>10.0.1.55</td></tr>
+        <tr><td>04.15 17:11</td><td>Sou-Jung Park</td><td><span class="bdg" style="background:var(--ol);color:var(--o);">권한변경</span></td><td>접근범위 소속→전사</td><td>Erli Na</td><td>10.0.1.55</td></tr>
+        <tr><td>04.15 14:32</td><td>System</td><td><span class="bdg" style="background:var(--red-bg);color:var(--red);">잠금</span></td><td>5회 실패 → 계정 잠금</td><td>Ki-hyeon Lee</td><td>203.142.xx</td></tr>
+    </tbody></table></div><div class="pg"><span>전체 248건</span><div class="pgb"><button>‹</button><button class="on">1</button><button>2</button><button>3</button><button>›</button></div></div></div>
+</div>
+
+    </main>
+</div>
+</div>
+
+<!-- ═══ MODAL: 사용자 등록 ═══ -->
+<div class="mo" id="m-add">
+    <div class="mo-c">
+        <div class="mo-h"><h3>사용자 등록</h3><button class="mo-x" onclick="mClose('m-add')">&#10005;</button></div>
+        <div class="mo-b">
+            <div class="fr">
+                <div class="fg"><label class="fl">이메일 <span class="req">*</span></label><input type="email" class="fc" placeholder="user@company.com"></div>
+                <div class="fg"><label class="fl">성명 <span class="req">*</span></label><input type="text" class="fc" placeholder="홍길동"></div>
+            </div>
+            <div class="fr">
+                <div class="fg"><label class="fl">고객사 <span class="req">*</span></label><select class="fc"><option>선택</option><option>세아베스틸지주</option><option>POSCO INT'L</option><option>Global Partner Inc.</option></select></div>
+                <div class="fg"><label class="fl">그룹 배정</label><select class="fc"><option>전체 (모든 리포트 접근)</option><option>Holdings 본사</option><option>SGV 베트남법인</option><option>SGI 미국법인</option><option>POSCO 재무팀</option></select></div>
+            </div>
+            <div class="fg">
+                <label class="fl">상세 권한 설정 <span class="req">*</span></label>
+                <div style="margin-bottom:6px;"><label style="font-size:12px;cursor:pointer;color:var(--o);font-weight:600;"><input type="checkbox" style="accent-color:var(--o);" onchange="var cb=document.querySelectorAll('#perm-grid-modal input[type=checkbox]');for(var i=0;i<cb.length;i++){cb[i].checked=this.checked;}"> 전체 선택 / 해제</label></div>
+                <div class="perm-grid" id="perm-grid-modal">
+                    <label class="perm-item"><input type="checkbox" checked><span class="pi-label">리포트 열람<span class="pi-desc">배정된 리포트를 온라인에서 열람</span></span></label>
+                    <label class="perm-item"><input type="checkbox"><span class="pi-label">자료 업로드<span class="pi-desc">요청 자료를 업로드</span></span></label>
+                    <label class="perm-item"><input type="checkbox" checked><span class="pi-label">PDF 추출<span class="pi-desc">리포트를 PDF로 다운로드</span></span></label>
+                    <label class="perm-item"><input type="checkbox"><span class="pi-label">Excel 추출<span class="pi-desc">리포트 데이터를 Excel로 내보내기</span></span></label>
+                    <label class="perm-item"><input type="checkbox"><span class="pi-label">인쇄<span class="pi-desc">리포트를 프린터로 출력</span></span></label>
+                    <label class="perm-item"><input type="checkbox"><span class="pi-label">공유 (링크)<span class="pi-desc">리포트 링크를 다른 사용자에게 공유</span></span></label>
+                    <label class="perm-item"><input type="checkbox" checked><span class="pi-label">코멘트 작성<span class="pi-desc">리포트에 질문/의견 작성</span></span></label>
+                    <label class="perm-item"><input type="checkbox" checked><span class="pi-label">사용자 추가 신청<span class="pi-desc">새 사용자 추가를 관리자에게 요청</span></span></label>
+                </div>
+            </div>
+            <div class="fr">
+                <div class="fg"><label class="fl">유효기간</label><input type="date" class="fc"><div style="font-size:11px;color:var(--g500);margin-top:3px;">미입력 시 무기한</div></div>
+                <div class="fg"><label class="fl">비고</label><input type="text" class="fc" placeholder="메모 (선택사항)"></div>
+            </div>
+            <!-- Welcome Mail -->
+            <div class="fg" style="margin-top:4px;">
+                <label style="display:flex;align-items:center;gap:7px;font-size:13px;cursor:pointer;"><input type="checkbox" checked style="accent-color:var(--o);" id="chk-mail" onchange="document.getElementById('mail-section').style.display=this.checked?'block':'none'"> Welcome 이메일 발송</label>
+            </div>
+            <div id="mail-section">
+                <div class="mail-custom">
+                    <label class="fl">추가 메시지 (선택)</label>
+                    <textarea placeholder="Welcome 메일에 추가할 안내 문구를 입력하세요..."></textarea>
+                </div>
+                <div style="margin-top:8px;"><button class="btn btn-o btn-s" onclick="document.getElementById('mail-pv').style.display=document.getElementById('mail-pv').style.display==='none'?'block':'none'">메일 미리보기</button></div>
+                <div class="mail-preview" id="mail-pv" style="display:none;margin-top:10px;">
+                    <div class="mail-hdr">
+                        <strong>From:</strong> noreply@pwc.com<br>
+                        <strong>To:</strong> user@company.com<br>
+                        <strong>Subject:</strong> [Easy View] 계정이 생성되었습니다
+                    </div>
+                    <div class="mail-body">
+                        안녕하세요,<br><br>
+                        <span class="highlight">Easy View</span> 포털 계정이 생성되었습니다.<br><br>
+                        아래 링크를 클릭하여 초기 비밀번호를 설정해 주세요.<br><br>
+                        <span style="display:inline-block;background:var(--o);color:#fff;padding:8px 20px;border-radius:3px;font-weight:600;font-size:13px;">비밀번호 설정하기</span><br><br>
+                        <strong>부여된 권한:</strong> 리포트 열람, PDF 추출, 코멘트 작성<br>
+                        <strong>유효기간:</strong> 무기한<br><br>
+                        <span style="font-size:12px;color:var(--g500);">본 메일은 자동 발송되었습니다. 문의사항은 kr_easyview_support@pwc.com 으로 연락해 주세요.</span><br><br>
+                        <span style="font-size:12px;color:var(--g500);">© 2026 PwC. All rights reserved.</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="mo-f"><button class="btn btn-o" onclick="mClose('m-add')">취소</button><button class="btn btn-p" onclick="mClose('m-add');toast('사용자가 등록되었습니다.')">등록</button></div>
+    </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ===== Core Functions ===== */
+function go(m) {
+    try {
+        var modes = document.querySelectorAll('.mode');
+        for (var i = 0; i < modes.length; i++) modes[i].classList.remove('on');
+        var target = document.getElementById('mode-' + m);
+        if (target) target.classList.add('on');
+        var hb = document.getElementById('hb');
+        if (hb) hb.style.display = (m === 'admin') ? 'flex' : 'none';
+        var ev = document.getElementById('nav-ev');
+        if (ev) {
+            if (m === 'admin') ev.classList.add('on');
+            else ev.classList.remove('on');
+        }
+        cdd();
+        window.scrollTo(0, 0);
+    } catch(e) { console.error('go error:', e); }
+}
+
+function ap(id, el) {
+    try {
+        var pages = document.querySelectorAll('.ap');
+        for (var i = 0; i < pages.length; i++) pages[i].classList.remove('on');
+        var target = document.getElementById(id);
+        if (target) target.classList.add('on');
+        if (el) {
+            var items = document.querySelectorAll('.sb-i');
+            for (var j = 0; j < items.length; j++) items[j].classList.remove('on');
+            el.classList.add('on');
+        }
+        window.scrollTo(0, 0);
+    } catch(e) { console.error('ap error:', e); }
+}
+
+function stab(el, id) {
+    try {
+        var tabs = el.parentElement.querySelectorAll('.tab');
+        for (var i = 0; i < tabs.length; i++) tabs[i].classList.remove('on');
+        el.classList.add('on');
+        var ids = ['sa', 'sp', 'sf'];
+        for (var j = 0; j < ids.length; j++) {
+            var panel = document.getElementById(ids[j]);
+            if (panel) panel.style.display = (ids[j] === id) ? 'block' : 'none';
+        }
+    } catch(e) { console.error('stab error:', e); }
+}
+
+function cdd() {
+    var dd = document.getElementById('dd');
+    if (dd) dd.classList.remove('show');
+}
+
+function mOpen(id) {
+    var el = document.getElementById(id);
+    if (el) el.classList.add('show');
+}
+
+function mClose(id) {
+    var el = document.getElementById(id);
+    if (el) el.classList.remove('show');
+}
+
+function toast(msg) {
+    var t = document.getElementById('toast');
+    if (t) {
+        t.textContent = msg;
+        t.classList.add('show');
+        setTimeout(function() { t.classList.remove('show'); }, 2400);
+    }
+}
+
+function colToggle(el, colIdx) {
+    try {
+        var tbl = el.closest('table');
+        if (!tbl) return;
+        var rows = tbl.querySelectorAll('tbody tr');
+        for (var i = 0; i < rows.length; i++) {
+            var cells = rows[i].querySelectorAll('td');
+            if (cells[colIdx]) {
+                var inp = cells[colIdx].querySelector('input[type="checkbox"]');
+                if (inp) inp.checked = el.checked;
+            }
+        }
+    } catch(e) { console.error('colToggle error:', e); }
+}
+
+/* ===== Inline onclick 강제 바인딩 (브라우저 호환) ===== */
+document.addEventListener('DOMContentLoaded', function() {
+    /* 모든 [onclick] 요소를 찾아서 addEventListener로 재바인딩 */
+    var els = document.querySelectorAll('[onclick]');
+    for (var i = 0; i < els.length; i++) {
+        (function(el) {
+            var code = el.getAttribute('onclick');
+            el.removeAttribute('onclick');
+            el.addEventListener('click', function(e) {
+                e.stopPropagation();
+                try { new Function(code).call(el); }
+                catch(err) { console.error('onclick error:', err, code); }
+            });
+        })(els[i]);
+    }
+
+    /* data-action 요소도 처리 */
+    var actions = document.querySelectorAll('[data-action]');
+    for (var j = 0; j < actions.length; j++) {
+        (function(el) {
+            el.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                var action = el.getAttribute('data-action');
+                var param = el.getAttribute('data-param') || '';
+                var param2 = el.getAttribute('data-param2') || '';
+                try {
+                    switch(action) {
+                        case 'go': go(param); break;
+                        case 'go-ap': go('admin'); ap(param); break;
+                        case 'ap': ap(param, el); break;
+                        case 'modal': mOpen(param); break;
+                        case 'modal-close': mClose(param); break;
+                        case 'modal-close-toast': mClose(param); toast(param2); break;
+                        case 'toast': toast(param); break;
+                        case 'stab': stab(el, param); break;
+                        case 'dd-toggle': document.getElementById('dd').classList.toggle('show'); break;
+                        case 'dd-go': go(param); cdd(); break;
+                        case 'dd-toast': toast(param); cdd(); break;
+                        case 'mail-toggle':
+                            var pv = document.getElementById('mail-pv');
+                            if (pv) pv.style.display = (pv.style.display === 'none') ? 'block' : 'none';
+                            break;
+                    }
+                } catch(err) { console.error('data-action error:', err); }
+            });
+        })(actions[j]);
+    }
+
+    /* Modal 배경 클릭 닫기 */
+    var modals = document.querySelectorAll('.mo');
+    for (var k = 0; k < modals.length; k++) {
+        modals[k].addEventListener('click', function(e) {
+            if (e.target === this) this.classList.remove('show');
+        });
+    }
+});
+
+/* Dropdown 닫기 (document level) */
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('.dd-w') && !e.target.closest('[data-action="dd-toggle"]')) {
+        cdd();
+    }
+});
+</script>
+</body>
+</html>
