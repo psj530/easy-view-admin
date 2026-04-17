@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from config import settings
 from database import init_db
-from routers import auth, users, groups, permissions, requests, audit
+from routers import auth, users, groups, permissions, requests, audit, roles, security, companies
 
 app = FastAPI(
     title="EasyView Admin API",
@@ -28,6 +28,9 @@ app.include_router(groups.router)
 app.include_router(permissions.router)
 app.include_router(requests.router)
 app.include_router(audit.router)
+app.include_router(roles.router)
+app.include_router(security.router)
+app.include_router(companies.router)
 
 
 @app.on_event("startup")

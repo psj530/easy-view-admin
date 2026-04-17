@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import UserRegistrationModal from "../../components/UserRegistrationModal";
 import { showToast } from "../../components/Toast";
-import { usersApi } from "../../lib/api";
+import { usersApi, companiesApi } from "../../lib/api";
 
 interface User {
   id: number;
@@ -19,7 +19,7 @@ interface User {
 
 const statusOptions = ["전체", "active", "inactive", "pending"];
 const roleOptions = ["전체", "admin", "manager", "viewer"];
-const companyOptions = ["전체", "PwC", "SeAH", "POSCO"];
+const defaultCompanyOptions = ["전체"];
 
 export default function AccountsPage() {
   const [users, setUsers] = useState<User[]>([]);
@@ -29,6 +29,7 @@ export default function AccountsPage() {
   const [statusFilter, setStatusFilter] = useState("전체");
   const [roleFilter, setRoleFilter] = useState("전체");
   const [companyFilter, setCompanyFilter] = useState("전체");
+  const [companyOptions, setCompanyOptions] = useState(defaultCompanyOptions);
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedUsers, setSelectedUsers] = useState<number[]>([]);
 
@@ -51,6 +52,12 @@ export default function AccountsPage() {
   }, [search, statusFilter, roleFilter, companyFilter]);
 
   useEffect(() => { fetchUsers(); }, [fetchUsers]);
+
+  useEffect(() => {
+    companiesApi.names().then((res) => {
+      setCompanyOptions(["전체", ...(res.names || [])]);
+    }).catch(() => {});
+  }, []);
 
   const toggleSelectAll = () => {
     setSelectedUsers(selectedUsers.length === users.length ? [] : users.map((u) => u.id));

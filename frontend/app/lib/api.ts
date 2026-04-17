@@ -101,3 +101,32 @@ export const auditApi = {
   },
   stats: () => api.get('/api/audit-logs/stats'),
 };
+
+// Roles
+export const rolesApi = {
+  list: (params?: Record<string, string>) => {
+    const qs = params ? '?' + new URLSearchParams(params).toString() : '';
+    return api.get(`/api/roles${qs}`);
+  },
+  create: (data: Record<string, unknown>) => api.post('/api/roles', data),
+  update: (id: number, data: Record<string, unknown>) => api.put(`/api/roles/${id}`, data),
+  delete: (id: number) => api.delete(`/api/roles/${id}`),
+};
+
+// Security
+export const securityApi = {
+  accounts: (params?: Record<string, string>) => {
+    const qs = params ? '?' + new URLSearchParams(params).toString() : '';
+    return api.get(`/api/security/accounts${qs}`);
+  },
+  loginFailures: () => api.get('/api/security/login-failures'),
+  stats: () => api.get('/api/security/stats'),
+};
+
+// Companies
+export const companiesApi = {
+  list: () => api.get('/api/companies'),
+  create: (data: Record<string, unknown>) => api.post('/api/companies', data),
+  createSubsidiary: (data: Record<string, unknown>) => api.post('/api/companies/subsidiaries', data),
+  names: () => api.get('/api/companies/names'),
+};

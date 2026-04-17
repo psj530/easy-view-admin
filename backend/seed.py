@@ -1,4 +1,5 @@
 """DB 초기 데이터 시딩"""
+import json
 from datetime import datetime, timedelta
 from database import SessionLocal
 from models.user import User
@@ -6,6 +7,8 @@ from models.group import Group
 from models.permission import ReportPermission, UserPermission
 from models.audit import AuditLog
 from models.request import UserAddRequest
+from models.role import Role
+from models.company import Company, Subsidiary
 from auth_utils import hash_password
 
 DEFAULT_PASSWORD = "admin1234!"
@@ -128,6 +131,39 @@ def seed_data(force=False):
         AuditLog(actor="김관리", action_type="비밀번호 초기화", detail="한지혜 사용자 비밀번호 초기화", target="한지혜", ip_address="192.168.1.100", timestamp=now - timedelta(days=9)),
     ]
     db.add_all(logs)
+    db.flush()
+
+    # 회사
+    companies = [
+        Company(id=1, name="PwC"),
+        Company(id=2, name="SeAH"),
+        Company(id=3, name="POSCO"),
+    ]
+    db.add_all(companies)
+    db.flush()
+
+    # 자회사
+    subs = [
+        Subsidiary(name="SeAH 경영관리팀", company_id=2),
+        Subsidiary(name="SeAH 재무팀", company_id=2),
+        Subsidiary(name="SeAH 인사팀", company_id=2),
+        Subsidiary(name="POSCO 기획팀", company_id=3),
+        Subsidiary(name="POSCO 분석팀", company_id=3),
+        Subsidiary(name="POSCO 재무팀", company_id=3),
+    ]
+    db.add_all(subs)
+    db.flush()
+
+    # 역할
+    roles_data = [
+        Role(name="Full Access", category="pwc", description="모든 기능에 대한 전체 접근 권한", permissions=json.dumps(["자료 업로드", "리포트 열람", "공유/인쇄", "Excel/PDF 추출", "코멘트", "사용자 추가 신청", "사용자 관리", "권한 설정"], ensure_ascii=False)),
+        Role(name="Standard", category="pwc", description="일반 업무에 필요한 표준 권한", permissions=json.dumps(["자료 업로드", "리포트 열람", "Excel/PDF 추출", "코멘트"], ensure_ascii=False)),
+        Role(name="View Only", category="pwc", description="리포트 열람만 가능한 읽기 전용 권한", permissions=json.dumps(["리포트 열람"], ensure_ascii=False)),
+        Role(name="Client Manager", category="client", description="고객사 관리자 - 소속 사용자 관리 및 전체 기능 접근", permissions=json.dumps(["자료 업로드", "리포트 열람", "공유/인쇄", "Excel/PDF 추출", "코멘트", "사용자 추가 신청"], ensure_ascii=False)),
+        Role(name="Client Standard", category="client", description="고객사 표준 사용자 - 리포트 열람 및 기본 기능", permissions=json.dumps(["리포트 열람", "Excel/PDF 추출", "코멘트"], ensure_ascii=False)),
+        Role(name="Client View Only", category="client", description="고객사 뷰어 - 리포트 열람만 가능", permissions=json.dumps(["리포트 열람"], ensure_ascii=False)),
+    ]
+    db.add_all(roles_data)
 
     db.commit()
     db.close()
