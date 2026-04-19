@@ -37,6 +37,7 @@ export default function AccountsPage() {
   const [editUser, setEditUser] = useState<User | null>(null);
   const [editForm, setEditForm] = useState({ name: "", email: "", company: "", role: "", status: "" });
   const [editSaving, setEditSaving] = useState(false);
+  const [notifyUser, setNotifyUser] = useState(true);
 
   const fetchUsers = useCallback(async () => {
     try {
@@ -121,14 +122,22 @@ export default function AccountsPage() {
   const openEdit = (user: User) => {
     setEditUser(user);
     setEditForm({ name: user.name, email: user.email, company: user.company, role: user.role, status: user.status });
+    setNotifyUser(true);
   };
 
   const saveEdit = async () => {
     if (!editUser) return;
     setEditSaving(true);
     try {
+      const roleChanged = editUser.role !== editForm.role;
+      const statusChanged = editUser.status !== editForm.status;
       await usersApi.update(editUser.id, editForm);
-      showToast(`${editForm.name}님의 정보가 수정되었습니다.`, "success");
+      const msg = `${editForm.name}님의 정보가 수정되었습니다.`;
+      if (notifyUser && (roleChanged || statusChanged)) {
+        showToast(`${msg} (변경 알림이 발송됩니다)`, "success");
+      } else {
+        showToast(msg, "success");
+      }
       setEditUser(null);
       await fetchUsers();
     } catch (err: unknown) {
@@ -276,7 +285,12 @@ export default function AccountsPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-pwc-gray-700 mb-1">회사</label>
-                <input type="text" value={editForm.company} onChange={(e) => setEditForm({ ...editForm, company: e.target.value })} className="input-field" />
+                <select value={editForm.company} onChange={(e) => setEditForm({ ...editForm, company: e.target.value })} className="input-field">
+                  {companyOptions.filter((o) => o !== "전체").map((c) => (<option key={c} value={c}>{c}</option>))}
+                  {!companyOptions.includes(editForm.company) && editForm.company && (
+                    <option value={editForm.company}>{editForm.company}</option>
+                  )}
+                </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-pwc-gray-700 mb-1">역할</label>
@@ -293,6 +307,17 @@ export default function AccountsPage() {
                   <option value="inactive">비활성</option>
                   <option value="pending">대기</option>
                 </select>
+              </div>
+              {/* 알림 발송 토글 */}
+              <div className="flex items-center justify-between pt-2 border-t border-pwc-gray-200">
+                <div>
+                  <p className="text-sm font-medium text-pwc-gray-700">변경 알림 발송</p>
+                  <p className="text-xs text-pwc-gray-400">역할/상태 변경 시 사용자에게 이메일 알림</p>
+                </div>
+                <button type="button" onClick={() => setNotifyUser(!notifyUser)}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${notifyUser ? "bg-pwc-orange" : "bg-pwc-gray-300"}`}>
+                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${notifyUser ? "translate-x-6" : "translate-x-1"}`} />
+                </button>
               </div>
             </div>
             <div className="flex justify-end gap-2 mt-6">

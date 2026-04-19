@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { showToast } from "./Toast";
-import { groupsApi } from "../lib/api";
+import { groupsApi, companiesApi } from "../lib/api";
 
 interface UserRegistrationModalProps {
   isOpen: boolean;
@@ -38,6 +38,7 @@ export default function UserRegistrationModal({
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [company, setCompany] = useState("");
+  const [companyNames, setCompanyNames] = useState<string[]>([]);
   const [companySearch, setCompanySearch] = useState("");
   const [subsidiaryId, setSubsidiaryId] = useState<number | null>(null);
   const [subsidiaries, setSubsidiaries] = useState<CompanyGroup[]>([]);
@@ -50,6 +51,9 @@ export default function UserRegistrationModal({
     if (isOpen) {
       groupsApi.list().then((res) => {
         setSubsidiaries(res.groups || []);
+      }).catch(() => {});
+      companiesApi.names().then((res) => {
+        setCompanyNames(res.names || []);
       }).catch(() => {});
     }
   }, [isOpen]);
@@ -130,7 +134,10 @@ export default function UserRegistrationModal({
               <label className="block text-sm font-medium text-pwc-gray-700 mb-1">
                 회사 <span className="text-red-500">*</span>
               </label>
-              <input type="text" value={company} onChange={(e) => setCompany(e.target.value)} placeholder="회사명" className="input-field" />
+              <select value={company} onChange={(e) => setCompany(e.target.value)} className="input-field">
+                <option value="">회사 선택</option>
+                {companyNames.map((c) => (<option key={c} value={c}>{c}</option>))}
+              </select>
             </div>
             <div>
               <label className="block text-sm font-medium text-pwc-gray-700 mb-1">

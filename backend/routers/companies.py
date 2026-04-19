@@ -60,6 +60,8 @@ async def create_subsidiary(data: SubsidiaryCreate, db: Session = Depends(get_db
 
 @router.get("/names")
 async def get_company_names(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    """회사명 목록만 간단히 조회 (필터용)"""
-    companies = db.query(Company.name).order_by(Company.name).all()
-    return {"names": [c[0] for c in companies]}
+    """회사명 목록 - 사용자 테이블의 실제 회사명 + companies 테이블 통합"""
+    user_companies = db.query(User.company).distinct().order_by(User.company).all()
+    reg_companies = db.query(Company.name).order_by(Company.name).all()
+    all_names = sorted(set([c[0] for c in user_companies] + [c[0] for c in reg_companies]))
+    return {"names": all_names}

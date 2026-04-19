@@ -39,6 +39,7 @@ export default function PermissionsPage() {
   const [pagePerms, setPagePerms] = useState<PagePerms>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [notifyUsers, setNotifyUsers] = useState(true);
   const [userSearch, setUserSearch] = useState("");
   const [userCompanyFilter, setUserCompanyFilter] = useState("전체");
 
@@ -91,7 +92,7 @@ export default function PermissionsPage() {
         permissionsApi.updateMatrix(matrixPerms),
         permissionsApi.updateDetail(userPerms),
       ]);
-      showToast("권한 설정이 저장되었습니다.", "success");
+      showToast(notifyUsers ? "권한 설정이 저장되었습니다. (변경 알림이 발송됩니다)" : "권한 설정이 저장되었습니다.", "success");
     } catch { showToast("저장에 실패했습니다.", "error"); }
     finally { setSaving(false); }
   };
@@ -111,7 +112,16 @@ export default function PermissionsPage() {
           <h1 className="text-2xl font-bold text-pwc-black">리포트 접근 권한</h1>
           <p className="text-sm text-pwc-gray-500 mt-1">역할별 리포트 접근 권한과 페이지별 상세 권한을 관리합니다.</p>
         </div>
-        <button onClick={handleSave} disabled={saving} className="btn-primary">{saving ? "저장 중..." : "변경사항 저장"}</button>
+        <div className="flex items-center gap-4">
+          <label className="flex items-center gap-2 text-sm text-pwc-gray-600 cursor-pointer">
+            <button type="button" onClick={() => setNotifyUsers(!notifyUsers)}
+              className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${notifyUsers ? "bg-pwc-orange" : "bg-pwc-gray-300"}`}>
+              <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${notifyUsers ? "translate-x-[18px]" : "translate-x-0.5"}`} />
+            </button>
+            변경 알림
+          </label>
+          <button onClick={handleSave} disabled={saving} className="btn-primary">{saving ? "저장 중..." : "변경사항 저장"}</button>
+        </div>
       </div>
 
       {/* Tabs */}
