@@ -39,6 +39,8 @@ export default function PermissionsPage() {
   const [pagePerms, setPagePerms] = useState<PagePerms>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [userSearch, setUserSearch] = useState("");
+  const [userCompanyFilter, setUserCompanyFilter] = useState("전체");
 
   const reports = Array.from(new Set(matrixPerms.map((p) => p.report_name)));
   const roles = Array.from(new Set(matrixPerms.map((p) => p.role)));
@@ -206,44 +208,79 @@ export default function PermissionsPage() {
       )}
 
       {/* Tab 3: User Permissions */}
-      {activeTab === "users" && (
-        <div className="card overflow-hidden p-0">
-          <div className="px-6 py-4 border-b border-pwc-gray-200 bg-pwc-gray-50">
-            <h3 className="font-semibold text-pwc-black">사용자별 상세 기능 권한</h3>
-            <p className="text-xs text-pwc-gray-500 mt-1">사용자별 세부 기능 권한을 설정합니다.</p>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-pwc-gray-200">
-                  <th className="text-left py-3 px-6 font-medium text-pwc-gray-500 min-w-[150px]">사용자</th>
-                  {detailFields.map((f) => (
-                    <th key={f} className="py-3 px-3 font-medium text-pwc-gray-500 text-center min-w-[80px]">{detailLabels[f]}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {userPerms.map((up) => (
-                  <tr key={up.user_id} className="border-b border-pwc-gray-100 hover:bg-pwc-gray-50 transition-colors">
-                    <td className="py-3 px-6">
-                      <div>
-                        <p className="font-medium text-pwc-black">{up.user_name}</p>
-                        <p className="text-xs text-pwc-gray-500">{up.user_email}</p>
-                      </div>
-                    </td>
-                    {detailFields.map((field) => (
-                      <td key={field} className="py-3 px-3 text-center">
-                        <input type="checkbox" checked={!!up[field]} onChange={() => toggleUser(up.user_id, field)}
-                          className="w-4 h-4 rounded border-pwc-gray-300 text-pwc-orange focus:ring-pwc-orange cursor-pointer" />
-                      </td>
+      {activeTab === "users" && (() => {
+        const companies = Array.from(new Set(userPerms.map((u) => u.user_email.split("@")[1]?.split(".")[0] || "").filter(Boolean)));
+        const filtered = userPerms.filter((up) => {
+          const matchSearch = !userSearch ||
+            up.user_name.toLowerCase().includes(userSearch.toLowerCase()) ||
+            up.user_email.toLowerCase().includes(userSearch.toLowerCase());
+          const matchCompany = userCompanyFilter === "전체" ||
+            up.user_email.includes(userCompanyFilter.toLowerCase());
+          return matchSearch && matchCompany;
+        });
+        return (
+          <div className="space-y-4">
+            {/* Search & Filter */}
+            <div className="card">
+              <div className="flex flex-wrap items-end gap-4">
+                <div className="flex-1 min-w-[200px]">
+                  <label className="block text-xs font-medium text-pwc-gray-500 mb-1">검색</label>
+                  <input type="text" value={userSearch} onChange={(e) => setUserSearch(e.target.value)}
+                    placeholder="이름 또는 이메일로 검색" className="input-field" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-pwc-gray-500 mb-1">도메인</label>
+                  <select value={userCompanyFilter} onChange={(e) => setUserCompanyFilter(e.target.value)} className="input-field">
+                    <option value="전체">전체</option>
+                    {companies.map((c) => (<option key={c} value={c}>{c}</option>))}
+                  </select>
+                </div>
+                <div className="text-sm text-pwc-gray-500 pb-2">{filtered.length}명 / {userPerms.length}명</div>
+              </div>
+            </div>
+
+            <div className="card overflow-hidden p-0">
+              <div className="px-6 py-4 border-b border-pwc-gray-200 bg-pwc-gray-50">
+                <h3 className="font-semibold text-pwc-black">사용자별 상세 기능 권한</h3>
+                <p className="text-xs text-pwc-gray-500 mt-1">사용자별 세부 기능 권한을 설정합니다.</p>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-pwc-gray-200">
+                      <th className="text-left py-3 px-6 font-medium text-pwc-gray-500 min-w-[150px]">사용자</th>
+                      {detailFields.map((f) => (
+                        <th key={f} className="py-3 px-3 font-medium text-pwc-gray-500 text-center min-w-[80px]">{detailLabels[f]}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filtered.map((up) => (
+                      <tr key={up.user_id} className="border-b border-pwc-gray-100 hover:bg-pwc-gray-50 transition-colors">
+                        <td className="py-3 px-6">
+                          <div>
+                            <p className="font-medium text-pwc-black">{up.user_name}</p>
+                            <p className="text-xs text-pwc-gray-500">{up.user_email}</p>
+                          </div>
+                        </td>
+                        {detailFields.map((field) => (
+                          <td key={field} className="py-3 px-3 text-center">
+                            <input type="checkbox" checked={!!up[field]} onChange={() => toggleUser(up.user_id, field)}
+                              className="w-4 h-4 rounded border-pwc-gray-300 text-pwc-orange focus:ring-pwc-orange cursor-pointer" />
+                          </td>
+                        ))}
+                      </tr>
                     ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    {filtered.length === 0 && (
+                      <tr><td colSpan={detailFields.length + 1} className="py-12 text-center text-pwc-gray-400">검색 결과가 없습니다.</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 }
