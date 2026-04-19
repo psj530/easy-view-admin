@@ -33,6 +33,11 @@ export default function AccountsPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedUsers, setSelectedUsers] = useState<number[]>([]);
 
+  // 수정 모달
+  const [editUser, setEditUser] = useState<User | null>(null);
+  const [editForm, setEditForm] = useState({ name: "", email: "", company: "", role: "", status: "" });
+  const [editSaving, setEditSaving] = useState(false);
+
   const fetchUsers = useCallback(async () => {
     try {
       setLoading(true);
@@ -62,7 +67,6 @@ export default function AccountsPage() {
   const toggleSelectAll = () => {
     setSelectedUsers(selectedUsers.length === users.length ? [] : users.map((u) => u.id));
   };
-
   const toggleSelect = (id: number) => {
     setSelectedUsers((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]);
   };
@@ -114,6 +118,26 @@ export default function AccountsPage() {
     }
   };
 
+  const openEdit = (user: User) => {
+    setEditUser(user);
+    setEditForm({ name: user.name, email: user.email, company: user.company, role: user.role, status: user.status });
+  };
+
+  const saveEdit = async () => {
+    if (!editUser) return;
+    setEditSaving(true);
+    try {
+      await usersApi.update(editUser.id, editForm);
+      showToast(`${editForm.name}님의 정보가 수정되었습니다.`, "success");
+      setEditUser(null);
+      await fetchUsers();
+    } catch (err: unknown) {
+      showToast(err instanceof Error ? err.message : "수정에 실패했습니다.", "error");
+    } finally {
+      setEditSaving(false);
+    }
+  };
+
   const statusBadge = (status: string) => {
     const map: Record<string, { cls: string; label: string }> = {
       active: { cls: "badge-active", label: "활성" },
@@ -126,7 +150,6 @@ export default function AccountsPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-pwc-black">고객사 계정 관리</h1>
@@ -135,7 +158,6 @@ export default function AccountsPage() {
         <button onClick={() => setModalOpen(true)} className="btn-primary">+ 사용자 등록</button>
       </div>
 
-      {/* Filters */}
       <div className="card">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
@@ -165,7 +187,6 @@ export default function AccountsPage() {
         </div>
       </div>
 
-      {/* Table */}
       <div className="card overflow-hidden p-0">
         <div className="px-6 py-3 border-b border-pwc-gray-200 flex items-center justify-between bg-pwc-gray-50">
           <span className="text-sm text-pwc-gray-600">
@@ -204,9 +225,7 @@ export default function AccountsPage() {
                     </td>
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-pwc-orange flex items-center justify-center text-white text-xs font-medium flex-shrink-0">
-                          {user.name[0]}
-                        </div>
+                        <div className="w-8 h-8 rounded-full bg-pwc-orange flex items-center justify-center text-white text-xs font-medium flex-shrink-0">{user.name[0]}</div>
                         <div>
                           <p className="font-medium text-pwc-black">{user.name}</p>
                           <p className="text-xs text-pwc-gray-500">{user.email}</p>
@@ -221,7 +240,7 @@ export default function AccountsPage() {
                         <button onClick={() => toggleStatus(user.id)} className="p-1.5 rounded hover:bg-pwc-gray-100 transition-colors text-pwc-gray-500 hover:text-pwc-orange" title={user.status === "active" ? "비활성화" : "활성화"}>
                           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" /></svg>
                         </button>
-                        <button onClick={() => showToast(`${user.name}님의 정보를 수정합니다.`, "info")} className="p-1.5 rounded hover:bg-pwc-gray-100 transition-colors text-pwc-gray-500 hover:text-blue-600" title="수정">
+                        <button onClick={() => openEdit(user)} className="p-1.5 rounded hover:bg-pwc-gray-100 transition-colors text-pwc-gray-500 hover:text-blue-600" title="수정">
                           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                         </button>
                         <button onClick={() => deleteUser(user.id)} className="p-1.5 rounded hover:bg-red-50 transition-colors text-pwc-gray-500 hover:text-red-600" title="삭제">
@@ -239,6 +258,50 @@ export default function AccountsPage() {
           )}
         </div>
       </div>
+
+      {/* 수정 모달 */}
+      {editUser && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setEditUser(null)} />
+          <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 p-6">
+            <h2 className="text-lg font-semibold text-pwc-black mb-4">사용자 정보 수정</h2>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-pwc-gray-700 mb-1">이름</label>
+                <input type="text" value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} className="input-field" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-pwc-gray-700 mb-1">이메일</label>
+                <input type="email" value={editForm.email} onChange={(e) => setEditForm({ ...editForm, email: e.target.value })} className="input-field" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-pwc-gray-700 mb-1">회사</label>
+                <input type="text" value={editForm.company} onChange={(e) => setEditForm({ ...editForm, company: e.target.value })} className="input-field" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-pwc-gray-700 mb-1">역할</label>
+                <select value={editForm.role} onChange={(e) => setEditForm({ ...editForm, role: e.target.value })} className="input-field">
+                  <option value="admin">admin</option>
+                  <option value="manager">manager</option>
+                  <option value="viewer">viewer</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-pwc-gray-700 mb-1">상태</label>
+                <select value={editForm.status} onChange={(e) => setEditForm({ ...editForm, status: e.target.value })} className="input-field">
+                  <option value="active">활성</option>
+                  <option value="inactive">비활성</option>
+                  <option value="pending">대기</option>
+                </select>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 mt-6">
+              <button onClick={() => setEditUser(null)} className="text-sm px-4 py-2 rounded border border-pwc-gray-300 text-pwc-gray-700 hover:bg-pwc-gray-50">취소</button>
+              <button onClick={saveEdit} disabled={editSaving} className="btn-primary">{editSaving ? "저장 중..." : "저장"}</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <UserRegistrationModal isOpen={modalOpen} onClose={() => { setModalOpen(false); fetchUsers(); }} />
     </div>

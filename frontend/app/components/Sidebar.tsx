@@ -39,6 +39,11 @@ const sidebarItems: SidebarItem[] = [
     dotColor: "bg-red-500",
   },
   {
+    label: "자료 요청",
+    href: "/admin/data-request",
+    dotColor: "bg-cyan-500",
+  },
+  {
     label: "로그/방문이력",
     href: "/admin/logs",
     dotColor: "bg-teal-500",
