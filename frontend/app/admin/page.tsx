@@ -15,12 +15,11 @@ export default function AdminDashboard() {
 
   async function loadData() {
     try {
-      const [usersRes, activeRes, auditStatsRes, logsRes] = await Promise.all([
-        usersApi.list(),
-        usersApi.list({ status: "active" }),
-        auditApi.stats(),
-        auditApi.list({ page: "1", page_size: "5" }),
-      ]);
+      const usersRes = await usersApi.list().catch(() => ({ users: [], total: 0 }));
+      const activeRes = await usersApi.list({ status: "active" }).catch(() => ({ users: [], total: 0 }));
+      const auditStatsRes = await auditApi.stats().catch(() => ({ daily_stats: [], action_type_stats: [], total_logs: 0 }));
+      const logsRes = await auditApi.list({ page: "1", page_size: "5" }).catch(() => ({ logs: [] }));
+
       const companies = new Set((usersRes.users as Record<string, unknown>[]).map((u: Record<string, unknown>) => u.company));
       setStats({
         total: usersRes.total,
@@ -29,7 +28,7 @@ export default function AdminDashboard() {
         recentUsers: (usersRes.users as Record<string, unknown>[]).slice(0, 5),
       });
       setAuditStats(auditStatsRes);
-      setRecentLogs(logsRes.logs);
+      setRecentLogs(logsRes.logs || []);
     } catch { /* 로딩 실패 시 빈 상태 유지 */ }
   }
 
