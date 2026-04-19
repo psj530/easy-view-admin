@@ -28,10 +28,11 @@ export default function GroupsPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
 
-  // 회사 생성
+  // 회사 + 자회사 동시 생성
   const [showCompanyModal, setShowCompanyModal] = useState(false);
   const [newCompanyName, setNewCompanyName] = useState("");
-  // 자회사 생성
+  const [newSubsidiaries, setNewSubsidiaries] = useState<string[]>([""]);
+  // 자회사 추가 생성
   const [showSubModal, setShowSubModal] = useState(false);
   const [subForm, setSubForm] = useState({ name: "", company_id: 0 });
   // 그룹 생성/수정
@@ -52,20 +53,30 @@ export default function GroupsPage() {
 
   useEffect(() => { loadData(); }, [loadData]);
 
-  // 회사 생성
+  // 회사 + 자회사 동시 생성
   const createCompany = async () => {
     if (!newCompanyName.trim()) { showToast("회사명을 입력하세요.", "warning"); return; }
     setSaving(true);
     try {
-      await companiesApi.create({ name: newCompanyName });
-      showToast(`"${newCompanyName}" 회사가 생성되었습니다.`, "success");
-      setNewCompanyName(""); setShowCompanyModal(false);
+      const res = await companiesApi.create({ name: newCompanyName });
+      const companyId = res.id;
+      // 자회사도 함께 생성
+      const subs = newSubsidiaries.filter((s) => s.trim());
+      for (const subName of subs) {
+        await companiesApi.createSubsidiary({ name: subName.trim(), company_id: companyId });
+      }
+      showToast(`"${newCompanyName}" 회사가 생성되었습니다.${subs.length > 0 ? ` (자회사 ${subs.length}개 포함)` : ""}`, "success");
+      setNewCompanyName(""); setNewSubsidiaries([""]); setShowCompanyModal(false);
       await loadData();
     } catch (err) { showToast(err instanceof Error ? err.message : "생성 실패", "error"); }
     finally { setSaving(false); }
   };
 
-  // 자회사 생성
+  const addSubField = () => setNewSubsidiaries((prev) => [...prev, ""]);
+  const removeSubField = (i: number) => setNewSubsidiaries((prev) => prev.filter((_, idx) => idx !== i));
+  const updateSubField = (i: number, val: string) => setNewSubsidiaries((prev) => prev.map((s, idx) => idx === i ? val : s));
+
+  // 자회사 추가 생성
   const createSubsidiary = async () => {
     if (!subForm.name.trim() || !subForm.company_id) { showToast("자회사명과 회사를 선택하세요.", "warning"); return; }
     setSaving(true);
@@ -113,11 +124,6 @@ export default function GroupsPage() {
 
   const filteredGroups = groups.filter((g) => g.name.includes(search) || g.company.includes(search));
 
-  const tabs = [
-    { key: "companies" as const, label: "회사/자회사 관리" },
-    { key: "groups" as const, label: "그룹(대상법인) 관리" },
-  ];
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -128,8 +134,8 @@ export default function GroupsPage() {
         <div className="flex gap-2">
           {activeTab === "companies" && (
             <>
-              <button onClick={() => setShowCompanyModal(true)} className="btn-secondary text-sm">+ 회사 생성</button>
-              <button onClick={() => { setSubForm({ name: "", company_id: companies[0]?.id || 0 }); setShowSubModal(true); }} className="btn-primary text-sm">+ 자회사 생성</button>
+              <button onClick={() => { setNewCompanyName(""); setNewSubsidiaries([""]); setShowCompanyModal(true); }} className="btn-secondary text-sm">+ 회사 생성</button>
+              <button onClick={() => { setSubForm({ name: "", company_id: 0 }); setShowSubModal(true); }} className="btn-primary text-sm">+ 자회사 추가</button>
             </>
           )}
           {activeTab === "groups" && (
@@ -138,10 +144,9 @@ export default function GroupsPage() {
         </div>
       </div>
 
-      {/* Tabs */}
       <div className="border-b border-pwc-gray-200">
         <div className="flex gap-0">
-          {tabs.map((tab) => (
+          {[{ key: "companies" as const, label: "회사/자회사 관리" }, { key: "groups" as const, label: "그룹(대상법인) 관리" }].map((tab) => (
             <button key={tab.key} onClick={() => setActiveTab(tab.key)}
               className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === tab.key ? "border-pwc-orange text-pwc-orange" : "border-transparent text-pwc-gray-500 hover:text-pwc-gray-700"}`}>
               {tab.label}
@@ -152,11 +157,11 @@ export default function GroupsPage() {
 
       {loading && <div className="py-12 text-center text-pwc-gray-400">로딩 중...</div>}
 
-      {/* Tab 1: 회사/자회사 */}
+      {/* 회사/자회사 */}
       {!loading && activeTab === "companies" && (
         <div className="space-y-4">
           {companies.length === 0 ? (
-            <div className="card text-center py-12 text-pwc-gray-400">등록된 회사가 없습니다. 회사를 먼저 생성하세요.</div>
+            <div className="card text-center py-12 text-pwc-gray-400">등록된 회사가 없습니다.</div>
           ) : companies.map((company) => (
             <div key={company.id} className="card">
               <div className="flex items-center justify-between mb-3">
@@ -180,7 +185,7 @@ export default function GroupsPage() {
         </div>
       )}
 
-      {/* Tab 2: 그룹 */}
+      {/* 그룹 */}
       {!loading && activeTab === "groups" && (
         <>
           <div className="card">
@@ -232,15 +237,39 @@ export default function GroupsPage() {
         </>
       )}
 
-      {/* 회사 생성 모달 */}
+      {/* 회사 생성 모달 (자회사 동시 생성) */}
       {showCompanyModal && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center">
           <div className="absolute inset-0 bg-black/50" onClick={() => setShowCompanyModal(false)} />
-          <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-sm mx-4 p-6">
+          <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 p-6">
             <h2 className="text-lg font-semibold text-pwc-black mb-4">회사 생성</h2>
-            <div>
-              <label className="block text-sm font-medium text-pwc-gray-700 mb-1">회사명</label>
-              <input type="text" value={newCompanyName} onChange={(e) => setNewCompanyName(e.target.value)} placeholder="회사명 입력" className="input-field" />
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-pwc-gray-700 mb-1">회사명 <span className="text-red-500">*</span></label>
+                <input type="text" value={newCompanyName} onChange={(e) => setNewCompanyName(e.target.value)} placeholder="회사명 입력" className="input-field" />
+              </div>
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-sm font-medium text-pwc-gray-700">자회사(대상법인)</label>
+                  <button type="button" onClick={addSubField} className="text-xs text-pwc-orange hover:underline">+ 추가</button>
+                </div>
+                <div className="space-y-2">
+                  {newSubsidiaries.map((sub, i) => (
+                    <div key={i} className="flex gap-2">
+                      <input type="text" value={sub} onChange={(e) => updateSubField(i, e.target.value)}
+                        placeholder={`자회사명 ${i + 1}`} className="input-field flex-1" />
+                      {newSubsidiaries.length > 1 && (
+                        <button onClick={() => removeSubField(i)} className="text-red-500 hover:text-red-700 px-2">
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <p className="text-xs text-pwc-gray-400 mt-1">자회사는 나중에 추가할 수도 있습니다.</p>
+              </div>
             </div>
             <div className="flex justify-end gap-2 mt-6">
               <button onClick={() => setShowCompanyModal(false)} className="text-sm px-4 py-2 rounded border border-pwc-gray-300 text-pwc-gray-700 hover:bg-pwc-gray-50">취소</button>
@@ -250,12 +279,12 @@ export default function GroupsPage() {
         </div>
       )}
 
-      {/* 자회사 생성 모달 */}
+      {/* 자회사 추가 모달 */}
       {showSubModal && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center">
           <div className="absolute inset-0 bg-black/50" onClick={() => setShowSubModal(false)} />
           <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-sm mx-4 p-6">
-            <h2 className="text-lg font-semibold text-pwc-black mb-4">자회사(대상법인) 생성</h2>
+            <h2 className="text-lg font-semibold text-pwc-black mb-4">자회사(대상법인) 추가</h2>
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-pwc-gray-700 mb-1">소속 회사</label>

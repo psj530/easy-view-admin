@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { showToast } from "./Toast";
-import { groupsApi, companiesApi } from "../lib/api";
+import { groupsApi, companiesApi, usersApi } from "../lib/api";
 
 interface UserRegistrationModalProps {
   isOpen: boolean;
@@ -38,33 +38,34 @@ export default function UserRegistrationModal({
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [company, setCompany] = useState("");
-  const [companyNames, setCompanyNames] = useState<string[]>([]);
   const [companySearch, setCompanySearch] = useState("");
+  const [companyNames, setCompanyNames] = useState<string[]>([]);
+  const [showCompanyDropdown, setShowCompanyDropdown] = useState(false);
   const [subsidiaryId, setSubsidiaryId] = useState<number | null>(null);
+  const [subSearch, setSubSearch] = useState("");
   const [subsidiaries, setSubsidiaries] = useState<CompanyGroup[]>([]);
   const [permissions, setPermissions] = useState<Record<string, boolean>>({});
   const [sendWelcomeEmail, setSendWelcomeEmail] = useState(true);
   const [welcomeMessage, setWelcomeMessage] = useState(defaultWelcomeMessage);
   const [showPreview, setShowPreview] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
-      groupsApi.list().then((res) => {
-        setSubsidiaries(res.groups || []);
-      }).catch(() => {});
-      companiesApi.names().then((res) => {
-        setCompanyNames(res.names || []);
-      }).catch(() => {});
+      groupsApi.list().then((res) => setSubsidiaries(res.groups || [])).catch(() => {});
+      companiesApi.names().then((res) => setCompanyNames(res.names || [])).catch(() => {});
     }
   }, [isOpen]);
 
-  const filteredSubs = subsidiaries.filter(
-    (s) => s.name.includes(companySearch) || s.company.includes(companySearch)
+  const filteredCompanies = companyNames.filter((c) =>
+    c.toLowerCase().includes(companySearch.toLowerCase())
   );
 
-  const allChecked =
-    permissionOptions.every((p) => permissions[p.key]) &&
-    permissionOptions.length > 0;
+  const filteredSubs = subsidiaries.filter(
+    (s) => (!company || s.company === company) && s.name.includes(subSearch)
+  );
+
+  const allChecked = permissionOptions.every((p) => permissions[p.key]) && permissionOptions.length > 0;
 
   const toggleAll = () => {
     if (allChecked) {
@@ -80,21 +81,35 @@ export default function UserRegistrationModal({
     setPermissions((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!email || !name || !company) {
-      showToast("필수 항목을 모두 입력해주세요.", "warning");
+      showToast("필수 항목(이메일, 이름, 회사)을 모두 입력해주세요.", "warning");
       return;
     }
-    showToast(`${name}님의 계정이 생성되었습니다.`, "success");
-    setEmail("");
-    setName("");
-    setCompany("");
-    setCompanySearch("");
-    setSubsidiaryId(null);
-    setPermissions({});
-    setSendWelcomeEmail(true);
-    setWelcomeMessage(defaultWelcomeMessage);
-    onClose();
+    setSubmitting(true);
+    try {
+      await usersApi.create({
+        email, name, company,
+        group_id: subsidiaryId,
+        role: "viewer",
+        password: "temp1234!",
+      });
+      if (sendWelcomeEmail) {
+        showToast(`${name}님의 계정이 생성되었습니다. 로그인 안내 메일이 발송됩니다.`, "success");
+      } else {
+        showToast(`${name}님의 계정이 생성되었습니다.`, "success");
+      }
+      // 폼 초기화
+      setEmail(""); setName(""); setCompany(""); setCompanySearch("");
+      setSubsidiaryId(null); setSubSearch("");
+      setPermissions({}); setSendWelcomeEmail(true);
+      setWelcomeMessage(defaultWelcomeMessage);
+      onClose();
+    } catch (err: unknown) {
+      showToast(err instanceof Error ? err.message : "사용자 생성에 실패했습니다.", "error");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   if (!isOpen) return null;
@@ -104,8 +119,7 @@ export default function UserRegistrationModal({
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
 
       <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto mx-4">
-        {/* Header */}
-        <div className="sticky top-0 bg-white border-b border-pwc-gray-200 px-6 py-4 rounded-t-xl flex items-center justify-between">
+        <div className="sticky top-0 bg-white border-b border-pwc-gray-200 px-6 py-4 rounded-t-xl flex items-center justify-between z-10">
           <h2 className="text-lg font-semibold text-pwc-black">사용자 등록</h2>
           <button onClick={onClose} className="text-pwc-gray-400 hover:text-pwc-gray-600 transition-colors">
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -114,64 +128,66 @@ export default function UserRegistrationModal({
           </button>
         </div>
 
-        {/* Body */}
         <div className="px-6 py-4 space-y-5">
-          {/* Basic Info */}
+          {/* 기본 정보 */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-pwc-gray-700 mb-1">
-                이메일 <span className="text-red-500">*</span>
-              </label>
+              <label className="block text-sm font-medium text-pwc-gray-700 mb-1">이메일 <span className="text-red-500">*</span></label>
               <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="user@company.com" className="input-field" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-pwc-gray-700 mb-1">
-                이름 <span className="text-red-500">*</span>
-              </label>
+              <label className="block text-sm font-medium text-pwc-gray-700 mb-1">이름 <span className="text-red-500">*</span></label>
               <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="홍길동" className="input-field" />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-pwc-gray-700 mb-1">
-                회사 <span className="text-red-500">*</span>
-              </label>
-              <select value={company} onChange={(e) => setCompany(e.target.value)} className="input-field">
-                <option value="">회사 선택</option>
-                {companyNames.map((c) => (<option key={c} value={c}>{c}</option>))}
-              </select>
+            <div className="relative">
+              <label className="block text-sm font-medium text-pwc-gray-700 mb-1">회사 <span className="text-red-500">*</span></label>
+              <input
+                type="text"
+                value={company || companySearch}
+                onChange={(e) => { setCompanySearch(e.target.value); setCompany(""); setShowCompanyDropdown(true); }}
+                onFocus={() => setShowCompanyDropdown(true)}
+                placeholder="회사 검색..."
+                className="input-field"
+              />
+              {showCompanyDropdown && (companySearch || !company) && (
+                <div className="absolute z-20 w-full mt-1 bg-white border border-pwc-gray-200 rounded-lg shadow-lg max-h-40 overflow-y-auto">
+                  {filteredCompanies.length > 0 ? filteredCompanies.map((c) => (
+                    <button key={c} onClick={() => { setCompany(c); setCompanySearch(""); setShowCompanyDropdown(false); }}
+                      className="w-full text-left px-3 py-2 text-sm hover:bg-pwc-gray-50 transition-colors">
+                      {c}
+                    </button>
+                  )) : (
+                    <div className="px-3 py-2 text-sm text-pwc-gray-400">검색 결과 없음</div>
+                  )}
+                </div>
+              )}
             </div>
-            <div>
-              <label className="block text-sm font-medium text-pwc-gray-700 mb-1">
-                자회사 <span className="text-pwc-orange text-xs">(대상법인)</span>
-              </label>
-              <div className="relative">
-                <input
-                  type="text"
-                  value={companySearch}
-                  onChange={(e) => { setCompanySearch(e.target.value); setSubsidiaryId(null); }}
-                  placeholder="자회사 검색..."
-                  className="input-field"
-                />
-                {companySearch && !subsidiaryId && (
-                  <div className="absolute z-10 w-full mt-1 bg-white border border-pwc-gray-200 rounded-lg shadow-lg max-h-40 overflow-y-auto">
-                    {filteredSubs.length > 0 ? filteredSubs.map((s) => (
-                      <button
-                        key={s.id}
-                        onClick={() => { setSubsidiaryId(s.id); setCompanySearch(s.name); }}
-                        className="w-full text-left px-3 py-2 text-sm hover:bg-pwc-gray-50 transition-colors"
-                      >
-                        <span className="font-medium text-pwc-black">{s.name}</span>
-                        <span className="text-xs text-pwc-gray-500 ml-2">{s.company}</span>
-                      </button>
-                    )) : (
-                      <div className="px-3 py-2 text-sm text-pwc-gray-400">검색 결과 없음</div>
-                    )}
-                  </div>
-                )}
-              </div>
+            <div className="relative">
+              <label className="block text-sm font-medium text-pwc-gray-700 mb-1">자회사 <span className="text-pwc-orange text-xs">(대상법인)</span></label>
+              <input
+                type="text"
+                value={subsidiaryId ? subsidiaries.find((s) => s.id === subsidiaryId)?.name || subSearch : subSearch}
+                onChange={(e) => { setSubSearch(e.target.value); setSubsidiaryId(null); }}
+                placeholder="자회사 검색..."
+                className="input-field"
+              />
+              {subSearch && !subsidiaryId && (
+                <div className="absolute z-20 w-full mt-1 bg-white border border-pwc-gray-200 rounded-lg shadow-lg max-h-40 overflow-y-auto">
+                  {filteredSubs.length > 0 ? filteredSubs.map((s) => (
+                    <button key={s.id} onClick={() => { setSubsidiaryId(s.id); setSubSearch(""); }}
+                      className="w-full text-left px-3 py-2 text-sm hover:bg-pwc-gray-50 transition-colors">
+                      <span className="font-medium text-pwc-black">{s.name}</span>
+                      <span className="text-xs text-pwc-gray-500 ml-2">{s.company}</span>
+                    </button>
+                  )) : (
+                    <div className="px-3 py-2 text-sm text-pwc-gray-400">검색 결과 없음</div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
-          {/* Permissions */}
+          {/* 권한 */}
           <div>
             <div className="flex items-center justify-between mb-3">
               <label className="text-sm font-medium text-pwc-gray-700">상세 권한 설정</label>
@@ -193,7 +209,10 @@ export default function UserRegistrationModal({
           {/* Welcome Email */}
           <div>
             <div className="flex items-center justify-between mb-3">
-              <label className="text-sm font-medium text-pwc-gray-700">Welcome 이메일 발송</label>
+              <div>
+                <label className="text-sm font-medium text-pwc-gray-700">Welcome 이메일 발송</label>
+                <p className="text-xs text-pwc-gray-400">로그인 방법 안내 메일이 자동 발송됩니다</p>
+              </div>
               <button type="button" onClick={() => setSendWelcomeEmail(!sendWelcomeEmail)}
                 className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${sendWelcomeEmail ? "bg-pwc-orange" : "bg-pwc-gray-300"}`}>
                 <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${sendWelcomeEmail ? "translate-x-6" : "translate-x-1"}`} />
@@ -220,10 +239,11 @@ export default function UserRegistrationModal({
           </div>
         </div>
 
-        {/* Footer */}
         <div className="sticky bottom-0 bg-white border-t border-pwc-gray-200 px-6 py-4 rounded-b-xl flex justify-end gap-3">
           <button onClick={onClose} className="btn-secondary">취소</button>
-          <button onClick={handleSubmit} className="btn-primary">등록</button>
+          <button onClick={handleSubmit} disabled={submitting} className="btn-primary">
+            {submitting ? "등록 중..." : "등록"}
+          </button>
         </div>
       </div>
     </div>
