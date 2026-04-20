@@ -6,10 +6,9 @@ import { usePathname } from "next/navigation";
 import { useAuth } from "../lib/auth";
 
 const navItems = [
-  { label: "리포트", href: "/admin" },
-  { label: "새 리포트", href: "#" },
-  { label: "자료실", href: "/admin/data-request" },
   { label: "서비스 소개", href: "/" },
+  { label: "리포트", href: "/admin" },
+  { label: "자료실", href: "/admin/data-request" },
 ];
 
 export default function Header() {
