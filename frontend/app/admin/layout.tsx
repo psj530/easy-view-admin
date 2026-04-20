@@ -6,29 +6,31 @@ import { useAuth } from "../lib/auth";
 import Sidebar from "../components/Sidebar";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, loading } = useAuth();
+  const { user, isAuthenticated, loading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
     if (!loading && !isAuthenticated) {
       router.push("/login");
+    } else if (!loading && isAuthenticated && user?.role !== "admin") {
+      router.push("/mypage");
     }
-  }, [loading, isAuthenticated, router]);
+  }, [loading, isAuthenticated, user, router]);
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[calc(100vh-3.5rem)]">
+      <div className="flex items-center justify-center min-h-[calc(100vh-52px)]">
         <div className="text-pwc-gray-500">로딩 중...</div>
       </div>
     );
   }
 
-  if (!isAuthenticated) return null;
+  if (!isAuthenticated || user?.role !== "admin") return null;
 
   return (
     <div className="flex">
       <Sidebar />
-      <main className="flex-1 p-6 min-h-[calc(100vh-3.5rem)] overflow-auto">
+      <main className="flex-1 p-6 min-h-[calc(100vh-52px)] overflow-auto">
         {children}
       </main>
     </div>

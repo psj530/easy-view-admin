@@ -35,8 +35,9 @@ export default function Header() {
     return false;
   };
 
-  const displayName = user?.role === "admin" ? "관리자" : user?.name || "";
-  const companyLabel = user?.role === "admin" ? "감사본부" : user?.company || "";
+  const isAdmin = user?.role === "admin";
+  const displayName = isAdmin ? "관리자" : user?.name || "";
+  const companyLabel = isAdmin ? "감사본부" : user?.company || "";
 
   return (
     <header className="bg-white sticky top-0 z-50 border-b border-gray-200">
@@ -115,9 +116,14 @@ export default function Header() {
                       <span className="inline-block mt-1.5 text-[10px] bg-[#d04a02] text-white px-1.5 py-0.5 rounded">PwC Internal</span>
                     )}
                   </div>
-                  <Link href="/admin" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50" onClick={() => setDropdownOpen(false)}>
-                    Admin Portal
+                  <Link href="/mypage" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50" onClick={() => setDropdownOpen(false)}>
+                    마이페이지
                   </Link>
+                  {isAdmin && (
+                    <Link href="/admin" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50" onClick={() => setDropdownOpen(false)}>
+                      Admin Portal
+                    </Link>
+                  )}
                   <div className="border-t border-gray-100">
                     <button onClick={logout} className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50">
                       로그아웃

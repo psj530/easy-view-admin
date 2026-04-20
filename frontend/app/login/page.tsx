@@ -18,7 +18,8 @@ export default function LoginPage() {
     setLoading(true);
     try {
       await login(email, password);
-      router.push("/admin");
+      const savedUser = JSON.parse(localStorage.getItem("user") || "{}");
+      router.push(savedUser.role === "admin" ? "/admin" : "/mypage");
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "로그인에 실패했습니다.");
     } finally {
@@ -73,13 +74,26 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <div className="mt-6 pt-4 border-t border-pwc-gray-200 text-center">
-            <p className="text-xs text-pwc-gray-400">
-              테스트 계정: admin@pwc.com / admin1234!
-            </p>
-            <p className="text-xs text-pwc-gray-400 mt-1">
-              추후 회사 SSO 인증으로 전환 예정
-            </p>
+          <div className="mt-6 pt-4 border-t border-pwc-gray-200">
+            <p className="text-xs text-pwc-gray-500 font-medium mb-2 text-center">테스트 계정</p>
+            <div className="space-y-1.5">
+              <button type="button" onClick={() => { setEmail("admin@pwc.com"); setPassword("admin1234!"); }}
+                className="w-full text-left px-3 py-2 rounded border border-pwc-gray-200 hover:bg-pwc-gray-50 transition-colors">
+                <span className="text-xs font-medium text-pwc-orange">관리자</span>
+                <span className="text-xs text-pwc-gray-500 ml-2">admin@pwc.com / admin1234!</span>
+              </button>
+              <button type="button" onClick={() => { setEmail("park.jm@seah.co.kr"); setPassword("admin1234!"); }}
+                className="w-full text-left px-3 py-2 rounded border border-pwc-gray-200 hover:bg-pwc-gray-50 transition-colors">
+                <span className="text-xs font-medium text-blue-600">매니저</span>
+                <span className="text-xs text-pwc-gray-500 ml-2">park.jm@seah.co.kr / admin1234!</span>
+              </button>
+              <button type="button" onClick={() => { setEmail("lee.sh@seah.co.kr"); setPassword("admin1234!"); }}
+                className="w-full text-left px-3 py-2 rounded border border-pwc-gray-200 hover:bg-pwc-gray-50 transition-colors">
+                <span className="text-xs font-medium text-gray-600">뷰어</span>
+                <span className="text-xs text-pwc-gray-500 ml-2">lee.sh@seah.co.kr / admin1234!</span>
+              </button>
+            </div>
+            <p className="text-xs text-pwc-gray-400 mt-3 text-center">클릭하면 자동 입력됩니다</p>
           </div>
         </div>
       </div>
