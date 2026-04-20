@@ -27,6 +27,7 @@ export default function AccountsPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("전체");
   const [roleFilter, setRoleFilter] = useState("전체");
@@ -119,6 +120,14 @@ export default function AccountsPage() {
   };
 
   const saveBulk = async () => {
+    // PwC 역할 일괄 적용 시 도메인 검증
+    if (bulkForm.role === "admin") {
+      const nonPwc = users.filter((u) => selectedUsers.includes(u.id) && !u.email.endsWith("@pwc.com"));
+      if (nonPwc.length > 0) {
+        showToast(`PwC 역할은 @pwc.com 도메인만 가능합니다. (${nonPwc.map((u) => u.name).join(", ")})`, "error");
+        return;
+      }
+    }
     const updates: Record<string, string> = {};
     if (bulkForm.role) updates.role = bulkForm.role;
     if (bulkForm.status) updates.status = bulkForm.status;
@@ -141,7 +150,13 @@ export default function AccountsPage() {
     setEditUser(user); setEditForm({ name: user.name, email: user.email, company: user.company, role: user.role, status: user.status }); setNotifyUser(true);
   };
   const saveEdit = async () => {
-    if (!editUser) return; setEditSaving(true);
+    if (!editUser) return;
+    // PwC 역할은 @pwc.com 도메인만 가능
+    if (editForm.role === "admin" && !editForm.email.endsWith("@pwc.com")) {
+      showToast("PwC 역할은 @pwc.com 도메인 계정만 설정 가능합니다.", "error");
+      return;
+    }
+    setEditSaving(true);
     try { await usersApi.update(editUser.id, editForm); showToast(notifyUser ? "수정 완료 (알림 발송)" : "수정 완료", "success"); setEditUser(null); await fetchUsers(); await loadSecurity(); }
     catch (e: unknown) { showToast(e instanceof Error ? e.message : "실패", "error"); }
     finally { setEditSaving(false); }
@@ -174,25 +189,6 @@ export default function AccountsPage() {
         <div className="card text-center py-3"><p className="text-xl font-bold text-orange-600">{summary.expiring_passwords}</p><p className="text-xs text-pwc-gray-500">PW만료 임박</p></div>
       </div>
 
-      {/* 고객사/자회사 현황 (숫자 카드) */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <button onClick={() => { setCompanyFilter("전체"); setRoleFilter("전체"); setSelectedSub(null); }}
-          className="card text-center py-3 hover:ring-2 hover:ring-pwc-orange transition-all">
-          <p className="text-xl font-bold text-pwc-black">{companies.length}</p><p className="text-xs text-pwc-gray-500">등록 고객사</p>
-        </button>
-        <button onClick={() => { setCompanyFilter("전체"); setRoleFilter("전체"); setSelectedSub(null); }}
-          className="card text-center py-3 hover:ring-2 hover:ring-indigo-400 transition-all">
-          <p className="text-xl font-bold text-indigo-600">{companies.reduce((a, c) => a + c.subsidiaries.length, 0)}</p><p className="text-xs text-pwc-gray-500">등록 자회사</p>
-        </button>
-        <button onClick={() => { setRoleFilter("PwC"); setCompanyFilter("전체"); setSelectedSub(null); }}
-          className="card text-center py-3 hover:ring-2 hover:ring-red-400 transition-all">
-          <p className="text-xl font-bold text-red-600">{users.filter((u) => roleLabel(u.role) === "PwC").length}</p><p className="text-xs text-pwc-gray-500">PwC 계정</p>
-        </button>
-        <button onClick={() => { setRoleFilter("User"); setCompanyFilter("전체"); setSelectedSub(null); }}
-          className="card text-center py-3 hover:ring-2 hover:ring-blue-400 transition-all">
-          <p className="text-xl font-bold text-blue-600">{users.filter((u) => roleLabel(u.role) === "User").length}</p><p className="text-xs text-pwc-gray-500">User 계정</p>
-        </button>
-      </div>
 
       {/* 비밀번호 정책 (접이식) */}
       {showPolicy && (
@@ -217,7 +213,7 @@ export default function AccountsPage() {
       {/* 검색/필터 */}
       <div className="card">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div><label className="block text-xs font-medium text-pwc-gray-500 mb-1">검색</label><input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="이름, 이메일, 회사명" className="input-field" /></div>
+          <div><label className="block text-xs font-medium text-pwc-gray-500 mb-1">검색</label><input type="text" value={searchInput} onChange={(e) => setSearchInput(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") setSearch(searchInput); }} placeholder="이름, 이메일, 회사명 (Enter)" className="input-field" /></div>
           <div><label className="block text-xs font-medium text-pwc-gray-500 mb-1">상태</label>
             <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="input-field">
               {statusOptions.map((o) => (<option key={o} value={o}>{o === "전체" ? "전체" : o === "active" ? "활성" : o === "inactive" ? "비활성" : "대기"}</option>))}
@@ -337,7 +333,16 @@ export default function AccountsPage() {
                 </select>
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <div><label className="block text-sm font-medium text-pwc-gray-700 mb-1">역할</label><select value={editForm.role} onChange={(e) => setEditForm({ ...editForm, role: e.target.value })} className="input-field"><option value="admin">PwC</option><option value="viewer">User</option></select></div>
+                <div>
+                  <label className="block text-sm font-medium text-pwc-gray-700 mb-1">역할</label>
+                  <select value={editForm.role} onChange={(e) => setEditForm({ ...editForm, role: e.target.value })} className="input-field">
+                    {editForm.email.endsWith("@pwc.com") && <option value="admin">PwC</option>}
+                    <option value="viewer">User</option>
+                  </select>
+                  {editForm.role === "admin" && !editForm.email.endsWith("@pwc.com") && (
+                    <p className="text-xs text-red-500 mt-1">@pwc.com 도메인만 PwC 역할 가능</p>
+                  )}
+                </div>
                 <div><label className="block text-sm font-medium text-pwc-gray-700 mb-1">상태</label><select value={editForm.status} onChange={(e) => setEditForm({ ...editForm, status: e.target.value })} className="input-field"><option value="active">활성</option><option value="inactive">비활성</option><option value="pending">대기</option></select></div>
               </div>
               <div className="flex items-center justify-between pt-2 border-t border-pwc-gray-200">
