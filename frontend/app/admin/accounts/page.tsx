@@ -165,13 +165,56 @@ export default function AccountsPage() {
         </div>
       </div>
 
-      {/* 보안 요약 */}
+      {/* 계정 현황 */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-        <div className="card text-center py-3"><p className="text-xl font-bold text-pwc-black">{summary.total || total}</p><p className="text-xs text-pwc-gray-500">전체</p></div>
-        <div className="card text-center py-3"><p className="text-xl font-bold text-green-600">{summary.active}</p><p className="text-xs text-pwc-gray-500">활성</p></div>
-        <div className="card text-center py-3"><p className="text-xl font-bold text-red-600">{summary.inactive}</p><p className="text-xs text-pwc-gray-500">비활성</p></div>
-        <div className="card text-center py-3"><p className="text-xl font-bold text-yellow-600">{summary.pending}</p><p className="text-xs text-pwc-gray-500">대기</p></div>
+        <button onClick={() => { setStatusFilter("전체"); setRoleFilter("전체"); setCompanyFilter("전체"); }} className="card text-center py-3 hover:ring-2 hover:ring-pwc-orange transition-all"><p className="text-xl font-bold text-pwc-black">{summary.total || total}</p><p className="text-xs text-pwc-gray-500">전체</p></button>
+        <button onClick={() => { setStatusFilter("active"); setRoleFilter("전체"); setCompanyFilter("전체"); }} className="card text-center py-3 hover:ring-2 hover:ring-green-400 transition-all"><p className="text-xl font-bold text-green-600">{summary.active}</p><p className="text-xs text-pwc-gray-500">활성</p></button>
+        <button onClick={() => { setStatusFilter("inactive"); setRoleFilter("전체"); setCompanyFilter("전체"); }} className="card text-center py-3 hover:ring-2 hover:ring-red-400 transition-all"><p className="text-xl font-bold text-red-600">{summary.inactive}</p><p className="text-xs text-pwc-gray-500">비활성</p></button>
+        <button onClick={() => { setStatusFilter("pending"); setRoleFilter("전체"); setCompanyFilter("전체"); }} className="card text-center py-3 hover:ring-2 hover:ring-yellow-400 transition-all"><p className="text-xl font-bold text-yellow-600">{summary.pending}</p><p className="text-xs text-pwc-gray-500">대기</p></button>
         <div className="card text-center py-3"><p className="text-xl font-bold text-orange-600">{summary.expiring_passwords}</p><p className="text-xs text-pwc-gray-500">PW만료 임박</p></div>
+      </div>
+
+      {/* 고객사/자회사 현황 */}
+      <div className="card">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-semibold text-pwc-black">고객사/자회사 등록 현황</h3>
+          <span className="text-xs text-pwc-gray-400">{companies.length}개 고객사 · {companies.reduce((acc, c) => acc + c.subsidiaries.length, 0)}개 자회사</span>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {companies.filter((c) => c.subsidiaries.length > 0 || c.name === "PwC").slice(0, 20).map((c) => (
+            <button key={c.id} onClick={() => { setCompanyFilter(c.name); setSelectedSub(null); }}
+              className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border text-sm transition-all ${
+                companyFilter === c.name
+                  ? "bg-pwc-orange text-white border-pwc-orange"
+                  : "bg-white border-pwc-gray-200 text-pwc-gray-700 hover:border-pwc-orange hover:text-pwc-orange"
+              }`}>
+              <span className="font-medium">{c.name}</span>
+              {c.subsidiaries.length > 0 && (
+                <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${companyFilter === c.name ? "bg-white/30 text-white" : "bg-pwc-gray-100 text-pwc-gray-500"}`}>
+                  {c.subsidiaries.length}
+                </span>
+              )}
+            </button>
+          ))}
+          {companyFilter !== "전체" && (
+            <button onClick={() => { setCompanyFilter("전체"); setSelectedSub(null); }}
+              className="text-xs text-red-500 hover:underline px-2 py-1.5">
+              필터 해제 ✕
+            </button>
+          )}
+        </div>
+        {/* 선택된 회사의 자회사 표시 */}
+        {companyFilter !== "전체" && (() => {
+          const selected = companies.find((c) => c.name === companyFilter);
+          return selected && selected.subsidiaries.length > 0 ? (
+            <div className="mt-3 pt-3 border-t border-pwc-gray-100 flex flex-wrap gap-1.5">
+              <span className="text-xs text-pwc-gray-500 py-0.5">자회사:</span>
+              {selected.subsidiaries.map((s) => (
+                <span key={s.id} className="text-xs bg-pwc-gray-100 text-pwc-gray-600 px-2 py-0.5 rounded">{s.name}</span>
+              ))}
+            </div>
+          ) : null;
+        })()}
       </div>
 
       {/* 비밀번호 정책 (접이식) */}
