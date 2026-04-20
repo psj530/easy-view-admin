@@ -12,12 +12,11 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const doLogin = async (e: string, p: string) => {
     setError("");
     setLoading(true);
     try {
-      await login(email, password);
+      await login(e, p);
       const savedUser = JSON.parse(localStorage.getItem("user") || "{}");
       router.push(savedUser.role === "admin" ? "/admin" : "/mypage");
     } catch (err: unknown) {
@@ -25,6 +24,17 @@ export default function LoginPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await doLogin(email, password);
+  };
+
+  const quickLogin = (e: string, p: string) => {
+    setEmail(e);
+    setPassword(p);
+    doLogin(e, p);
   };
 
   return (
@@ -77,23 +87,23 @@ export default function LoginPage() {
           <div className="mt-6 pt-4 border-t border-pwc-gray-200">
             <p className="text-xs text-pwc-gray-500 font-medium mb-2 text-center">테스트 계정</p>
             <div className="space-y-1.5">
-              <button type="button" onClick={() => { setEmail("admin@pwc.com"); setPassword("admin1234!"); }}
+              <button type="button" onClick={() => quickLogin("admin@pwc.com", "admin1234!")}
                 className="w-full text-left px-3 py-2 rounded border border-pwc-gray-200 hover:bg-pwc-gray-50 transition-colors">
-                <span className="text-xs font-medium text-pwc-orange">관리자</span>
-                <span className="text-xs text-pwc-gray-500 ml-2">admin@pwc.com / admin1234!</span>
+                <span className="text-xs font-medium text-pwc-orange">관리자 (PwC)</span>
+                <span className="text-xs text-pwc-gray-500 ml-2">admin@pwc.com</span>
               </button>
-              <button type="button" onClick={() => { setEmail("park.jm@seah.co.kr"); setPassword("admin1234!"); }}
+              <button type="button" onClick={() => quickLogin("park.jm@seah.co.kr", "admin1234!")}
                 className="w-full text-left px-3 py-2 rounded border border-pwc-gray-200 hover:bg-pwc-gray-50 transition-colors">
-                <span className="text-xs font-medium text-blue-600">매니저</span>
-                <span className="text-xs text-pwc-gray-500 ml-2">park.jm@seah.co.kr / admin1234!</span>
+                <span className="text-xs font-medium text-blue-600">User (매니저)</span>
+                <span className="text-xs text-pwc-gray-500 ml-2">park.jm@seah.co.kr</span>
               </button>
-              <button type="button" onClick={() => { setEmail("lee.sh@seah.co.kr"); setPassword("admin1234!"); }}
+              <button type="button" onClick={() => quickLogin("lee.sh@seah.co.kr", "admin1234!")}
                 className="w-full text-left px-3 py-2 rounded border border-pwc-gray-200 hover:bg-pwc-gray-50 transition-colors">
-                <span className="text-xs font-medium text-gray-600">뷰어</span>
-                <span className="text-xs text-pwc-gray-500 ml-2">lee.sh@seah.co.kr / admin1234!</span>
+                <span className="text-xs font-medium text-gray-600">User (뷰어)</span>
+                <span className="text-xs text-pwc-gray-500 ml-2">lee.sh@seah.co.kr</span>
               </button>
             </div>
-            <p className="text-xs text-pwc-gray-400 mt-3 text-center">클릭하면 자동 입력됩니다</p>
+            <p className="text-xs text-pwc-gray-400 mt-3 text-center">클릭하면 자동 로그인됩니다</p>
           </div>
         </div>
       </div>
