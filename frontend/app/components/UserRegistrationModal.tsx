@@ -115,8 +115,8 @@ export default function UserRegistrationModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+    <div className="fixed inset-0 z-[200] flex items-center justify-center">
+      <div className="fixed inset-0 bg-black/50" onClick={onClose} />
 
       <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto mx-4">
         <div className="sticky top-0 bg-white border-b border-pwc-gray-200 px-6 py-4 rounded-t-xl flex items-center justify-between z-10">

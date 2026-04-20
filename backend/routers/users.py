@@ -92,6 +92,11 @@ async def update_user(user_id: int, user_update: UserUpdate, db: Session = Depen
     old_role = user.role
     old_status = user.status
     update_data = user_update.model_dump(exclude_unset=True)
+    # PwC 역할은 @pwc.com 도메인만 가능
+    new_role = update_data.get("role", user.role)
+    email = update_data.get("email", user.email)
+    if new_role in ("admin", "manager") and not email.endswith("@pwc.com"):
+        raise HTTPException(status_code=400, detail="PwC 역할은 @pwc.com 도메인 계정만 설정 가능합니다.")
     for key, value in update_data.items():
         setattr(user, key, value)
     db.add(AuditLog(actor=current_user.name, action_type="사용자 수정", detail=f"{user.name} 사용자 정보 수정", target=user.name))

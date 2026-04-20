@@ -1,0 +1,1427 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Easy View Admin - System Architecture</title>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <style>
+    :root {
+      --pwc-orange: #D04A02;
+      --pwc-dark: #2D2D2D;
+      --pwc-gray: #464646;
+      --pwc-light: #F5F5F5;
+      --pwc-white: #FFFFFF;
+      --pwc-yellow: #FFB600;
+      --pwc-red: #E0301E;
+      --pwc-green: #22992E;
+      --pwc-blue: #0076A8;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', -apple-system, sans-serif;
+      background: var(--pwc-light);
+      color: var(--pwc-dark);
+      line-height: 1.6;
+    }
+
+    /* Header */
+    .header {
+      background: linear-gradient(135deg, var(--pwc-dark) 0%, var(--pwc-gray) 100%);
+      color: white;
+      padding: 32px 48px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    }
+    .header h1 {
+      font-size: 28px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .header h1::before {
+      content: '';
+      width: 4px;
+      height: 32px;
+      background: var(--pwc-orange);
+      border-radius: 2px;
+    }
+    .header p {
+      margin-top: 8px;
+      color: rgba(255,255,255,0.7);
+      font-size: 14px;
+    }
+
+    /* Navigation */
+    .nav {
+      background: var(--pwc-white);
+      border-bottom: 1px solid #e0e0e0;
+      padding: 0 48px;
+      display: flex;
+      gap: 0;
+      overflow-x: auto;
+      position: sticky;
+      top: 92px;
+      z-index: 99;
+    }
+    .nav a {
+      padding: 14px 20px;
+      text-decoration: none;
+      color: var(--pwc-gray);
+      font-size: 13px;
+      font-weight: 600;
+      border-bottom: 3px solid transparent;
+      white-space: nowrap;
+      transition: all 0.2s;
+    }
+    .nav a:hover, .nav a.active {
+      color: var(--pwc-orange);
+      border-bottom-color: var(--pwc-orange);
+    }
+
+    /* Main Content */
+    .content {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 32px 48px;
+    }
+
+    /* Section */
+    .section {
+      margin-bottom: 48px;
+      scroll-margin-top: 160px;
+    }
+    .section-title {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--pwc-dark);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .section-title .badge {
+      background: var(--pwc-orange);
+      color: white;
+      font-size: 11px;
+      padding: 2px 10px;
+      border-radius: 12px;
+      font-weight: 600;
+    }
+    .section-desc {
+      color: #666;
+      font-size: 14px;
+      margin-bottom: 24px;
+    }
+
+    /* Cards */
+    .card {
+      background: var(--pwc-white);
+      border-radius: 12px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+      padding: 28px;
+      margin-bottom: 20px;
+      border: 1px solid #eee;
+    }
+    .card-title {
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 16px;
+      color: var(--pwc-dark);
+      padding-bottom: 12px;
+      border-bottom: 2px solid var(--pwc-orange);
+    }
+
+    /* Diagram Container */
+    .diagram-container {
+      background: var(--pwc-white);
+      border-radius: 12px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+      padding: 32px;
+      margin-bottom: 20px;
+      border: 1px solid #eee;
+      overflow-x: auto;
+    }
+    .mermaid {
+      display: flex;
+      justify-content: center;
+    }
+
+    /* Grid */
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+
+    /* Role Cards */
+    .role-card {
+      background: var(--pwc-white);
+      border-radius: 12px;
+      border: 1px solid #eee;
+      overflow: hidden;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    }
+    .role-card-header {
+      padding: 16px 20px;
+      color: white;
+      font-weight: 700;
+      font-size: 15px;
+    }
+    .role-card-header.pwc { background: var(--pwc-orange); }
+    .role-card-header.client { background: var(--pwc-blue); }
+    .role-card-body {
+      padding: 16px 20px;
+    }
+    .role-card-body .role-name {
+      font-weight: 700;
+      font-size: 14px;
+      margin-bottom: 4px;
+    }
+    .role-card-body .role-desc {
+      font-size: 12px;
+      color: #888;
+      margin-bottom: 12px;
+    }
+    .perm-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .perm-tag {
+      font-size: 11px;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-weight: 600;
+    }
+    .perm-tag.on { background: #E8F5E9; color: var(--pwc-green); }
+    .perm-tag.off { background: #FFEBEE; color: var(--pwc-red); text-decoration: line-through; opacity: 0.5; }
+
+    /* Table */
+    .matrix-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    .matrix-table th {
+      background: var(--pwc-dark);
+      color: white;
+      padding: 12px 16px;
+      text-align: center;
+      font-weight: 600;
+    }
+    .matrix-table th:first-child {
+      text-align: left;
+      border-radius: 8px 0 0 0;
+    }
+    .matrix-table th:last-child {
+      border-radius: 0 8px 0 0;
+    }
+    .matrix-table td {
+      padding: 12px 16px;
+      border-bottom: 1px solid #eee;
+      text-align: center;
+    }
+    .matrix-table td:first-child {
+      text-align: left;
+      font-weight: 600;
+    }
+    .matrix-table tr:hover { background: #FFFAF5; }
+    .check { color: var(--pwc-green); font-weight: bold; }
+    .cross { color: #ccc; }
+
+    /* Flow Steps */
+    .flow-steps {
+      display: flex;
+      gap: 0;
+      align-items: stretch;
+      margin: 20px 0;
+    }
+    .flow-step {
+      flex: 1;
+      padding: 20px;
+      background: var(--pwc-white);
+      border: 1px solid #eee;
+      position: relative;
+      text-align: center;
+    }
+    .flow-step:first-child { border-radius: 12px 0 0 12px; }
+    .flow-step:last-child { border-radius: 0 12px 12px 0; }
+    .flow-step .step-num {
+      width: 32px;
+      height: 32px;
+      background: var(--pwc-orange);
+      color: white;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 14px;
+      margin-bottom: 8px;
+    }
+    .flow-step .step-title {
+      font-weight: 700;
+      font-size: 13px;
+      margin-bottom: 4px;
+    }
+    .flow-step .step-desc {
+      font-size: 11px;
+      color: #888;
+    }
+    .flow-step::after {
+      content: '→';
+      position: absolute;
+      right: -12px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 20px;
+      color: var(--pwc-orange);
+      z-index: 1;
+      font-weight: bold;
+    }
+    .flow-step:last-child::after { content: ''; }
+
+    /* Trigger Table */
+    .trigger-row {
+      display: flex;
+      align-items: center;
+      padding: 14px 0;
+      border-bottom: 1px solid #f0f0f0;
+      gap: 16px;
+    }
+    .trigger-row:last-child { border-bottom: none; }
+    .trigger-event {
+      min-width: 160px;
+      font-weight: 700;
+      font-size: 13px;
+    }
+    .trigger-arrow {
+      color: var(--pwc-orange);
+      font-size: 18px;
+      font-weight: bold;
+    }
+    .trigger-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .trigger-action {
+      font-size: 11px;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-weight: 600;
+    }
+    .trigger-action.email { background: #FFF3E0; color: #E65100; }
+    .trigger-action.log { background: #E3F2FD; color: #1565C0; }
+    .trigger-action.status { background: #F3E5F5; color: #7B1FA2; }
+    .trigger-action.notify { background: #E8F5E9; color: #2E7D32; }
+
+    /* Report Tree */
+    .report-tree {
+      padding-left: 0;
+    }
+    .tree-category {
+      margin-bottom: 16px;
+    }
+    .tree-category-name {
+      font-weight: 700;
+      font-size: 14px;
+      padding: 8px 16px;
+      background: var(--pwc-orange);
+      color: white;
+      border-radius: 8px;
+      display: inline-block;
+      margin-bottom: 8px;
+    }
+    .tree-items {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding-left: 24px;
+    }
+    .tree-item {
+      background: #FFF8F0;
+      border: 1px solid #FFE0C0;
+      border-radius: 8px;
+      padding: 8px 16px;
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    /* Security Feature Cards */
+    .security-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 16px;
+    }
+    .security-card {
+      background: var(--pwc-white);
+      border-radius: 12px;
+      border: 1px solid #eee;
+      padding: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+    .security-card .icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      margin-bottom: 12px;
+    }
+    .security-card .icon.green { background: #E8F5E9; }
+    .security-card .icon.blue { background: #E3F2FD; }
+    .security-card .icon.orange { background: #FFF3E0; }
+    .security-card .icon.red { background: #FFEBEE; }
+    .security-card h4 { font-size: 14px; margin-bottom: 8px; }
+    .security-card p { font-size: 12px; color: #888; }
+    .security-card .status {
+      display: inline-block;
+      margin-top: 8px;
+      font-size: 11px;
+      padding: 2px 10px;
+      border-radius: 12px;
+      font-weight: 600;
+    }
+    .security-card .status.active { background: #E8F5E9; color: var(--pwc-green); }
+    .security-card .status.planned { background: #FFF3E0; color: #E65100; }
+    .security-card .status.partial { background: #E3F2FD; color: #1565C0; }
+
+    /* Navigation Map */
+    .nav-map {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 12px;
+    }
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 16px;
+      background: var(--pwc-white);
+      border-radius: 10px;
+      border: 1px solid #eee;
+      transition: all 0.2s;
+    }
+    .nav-item:hover {
+      border-color: var(--pwc-orange);
+      box-shadow: 0 4px 12px rgba(208,74,2,0.1);
+    }
+    .nav-item .nav-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      background: #FFF3E0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+    .nav-item .nav-info .nav-title { font-weight: 700; font-size: 13px; }
+    .nav-item .nav-info .nav-path { font-size: 11px; color: #999; font-family: monospace; }
+
+    /* Tech Stack */
+    .tech-stack {
+      display: flex;
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+    .tech-group {
+      flex: 1;
+      min-width: 200px;
+    }
+    .tech-group h4 {
+      font-size: 12px;
+      text-transform: uppercase;
+      color: #999;
+      letter-spacing: 1px;
+      margin-bottom: 8px;
+    }
+    .tech-tag {
+      display: inline-block;
+      padding: 6px 14px;
+      background: var(--pwc-light);
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      margin: 2px;
+    }
+
+    /* DB Schema */
+    .schema-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+    .schema-table th {
+      background: var(--pwc-gray);
+      color: white;
+      padding: 10px 14px;
+      text-align: left;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .schema-table td {
+      padding: 10px 14px;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    .schema-table tr:hover { background: #FFFAF5; }
+    .col-type {
+      font-family: monospace;
+      font-size: 11px;
+      color: var(--pwc-blue);
+    }
+
+    @media (max-width: 768px) {
+      .grid-2, .grid-3 { grid-template-columns: 1fr; }
+      .content { padding: 16px; }
+      .header { padding: 20px 16px; }
+      .nav { padding: 0 16px; }
+      .flow-steps { flex-direction: column; }
+      .flow-step { border-radius: 8px !important; }
+      .flow-step::after { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <div class="header">
+    <h1>Easy View Admin — System Architecture</h1>
+    <p>PwC Digital Finance Portal | 권한설정 · 인증 · 트리거 · 보안 시각화 문서</p>
+  </div>
+
+  <!-- Navigation -->
+  <div class="nav">
+    <a href="#overview" class="active">Overview</a>
+    <a href="#roles">역할 정의</a>
+    <a href="#permissions">권한 모델</a>
+    <a href="#auth">인증 흐름</a>
+    <a href="#pages">페이지 구조</a>
+    <a href="#triggers">이벤트/트리거</a>
+    <a href="#reports">리포트 구조</a>
+    <a href="#security">보안</a>
+    <a href="#database">DB 스키마</a>
+    <a href="#tech">기술 스택</a>
+  </div>
+
+  <div class="content">
+
+    <!-- 1. Overview -->
+    <div class="section" id="overview">
+      <div class="section-title">시스템 전체 아키텍처 <span class="badge">Overview</span></div>
+      <div class="section-desc">Easy View Admin Portal의 전체 시스템 구조를 한눈에 보여줍니다.</div>
+
+      <div class="diagram-container">
+        <div class="mermaid">
+graph TB
+  subgraph Client["🖥️ Frontend (Vercel)"]
+    NEXT["Next.js 14<br/>App Router + TypeScript"]
+    AUTH_CTX["AuthProvider<br/>Context"]
+    API_CLIENT["API Client<br/>JWT Bearer"]
+    PAGES["Admin Pages<br/>10개 페이지"]
+  end
+
+  subgraph Server["⚙️ Backend (Render)"]
+    FASTAPI["FastAPI<br/>Python 3.12"]
+    JWT["JWT Auth<br/>HS256"]
+    ROUTERS["Routers<br/>9개 모듈"]
+    MODELS["SQLAlchemy<br/>Models"]
+    EMAIL["Email Service<br/>Gmail SMTP"]
+  end
+
+  subgraph DB["💾 Database"]
+    SQLITE["SQLite<br/>9 Tables"]
+  end
+
+  NEXT --> AUTH_CTX
+  AUTH_CTX --> API_CLIENT
+  API_CLIENT -->|"HTTPS + Bearer Token"| FASTAPI
+  FASTAPI --> JWT
+  FASTAPI --> ROUTERS
+  ROUTERS --> MODELS
+  MODELS --> SQLITE
+  ROUTERS -->|"이벤트 발생 시"| EMAIL
+  PAGES --> NEXT
+
+  style Client fill:#FFF3E0,stroke:#D04A02,stroke-width:2px
+  style Server fill:#E3F2FD,stroke:#0076A8,stroke-width:2px
+  style DB fill:#E8F5E9,stroke:#22992E,stroke-width:2px
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. Roles -->
+    <div class="section" id="roles">
+      <div class="section-title">역할 정의 <span class="badge">6 Roles</span></div>
+      <div class="section-desc">PwC 내부(3개) + 고객사(3개) 역할로 구분되며, 각 역할에 따라 기능 접근 권한이 달라집니다.</div>
+
+      <div class="grid-2">
+        <!-- PwC Roles -->
+        <div>
+          <div class="role-card" style="margin-bottom: 16px;">
+            <div class="role-card-header pwc">PwC 내부 역할</div>
+            <div class="role-card-body">
+              <div class="role-name">Full Access (admin)</div>
+              <div class="role-desc">모든 기능 접근 가능 — 시스템 관리자</div>
+              <div class="perm-list">
+                <span class="perm-tag on">자료 업로드</span>
+                <span class="perm-tag on">리포트 열람</span>
+                <span class="perm-tag on">공유/인쇄</span>
+                <span class="perm-tag on">Excel/PDF</span>
+                <span class="perm-tag on">코멘트</span>
+                <span class="perm-tag on">사용자 추가</span>
+                <span class="perm-tag on">사용자 관리</span>
+                <span class="perm-tag on">권한 설정</span>
+              </div>
+            </div>
+          </div>
+          <div class="role-card" style="margin-bottom: 16px;">
+            <div class="role-card-header pwc">PwC 내부 역할</div>
+            <div class="role-card-body">
+              <div class="role-name">Standard (manager)</div>
+              <div class="role-desc">핵심 업무 기능 사용 가능</div>
+              <div class="perm-list">
+                <span class="perm-tag on">자료 업로드</span>
+                <span class="perm-tag on">리포트 열람</span>
+                <span class="perm-tag off">공유/인쇄</span>
+                <span class="perm-tag on">Excel/PDF</span>
+                <span class="perm-tag on">코멘트</span>
+                <span class="perm-tag off">사용자 추가</span>
+                <span class="perm-tag off">사용자 관리</span>
+                <span class="perm-tag off">권한 설정</span>
+              </div>
+            </div>
+          </div>
+          <div class="role-card">
+            <div class="role-card-header pwc">PwC 내부 역할</div>
+            <div class="role-card-body">
+              <div class="role-name">View Only (viewer)</div>
+              <div class="role-desc">읽기 전용 접근</div>
+              <div class="perm-list">
+                <span class="perm-tag off">자료 업로드</span>
+                <span class="perm-tag on">리포트 열람</span>
+                <span class="perm-tag off">공유/인쇄</span>
+                <span class="perm-tag off">Excel/PDF</span>
+                <span class="perm-tag off">코멘트</span>
+                <span class="perm-tag off">사용자 추가</span>
+                <span class="perm-tag off">사용자 관리</span>
+                <span class="perm-tag off">권한 설정</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Client Roles -->
+        <div>
+          <div class="role-card" style="margin-bottom: 16px;">
+            <div class="role-card-header client">고객사 역할</div>
+            <div class="role-card-body">
+              <div class="role-name">Client Manager</div>
+              <div class="role-desc">고객사 관리자 — 사용자 추가 요청 가능</div>
+              <div class="perm-list">
+                <span class="perm-tag on">자료 업로드</span>
+                <span class="perm-tag on">리포트 열람</span>
+                <span class="perm-tag on">공유/인쇄</span>
+                <span class="perm-tag on">Excel/PDF</span>
+                <span class="perm-tag on">코멘트</span>
+                <span class="perm-tag on">사용자 추가 신청</span>
+                <span class="perm-tag off">사용자 관리</span>
+                <span class="perm-tag off">권한 설정</span>
+              </div>
+            </div>
+          </div>
+          <div class="role-card" style="margin-bottom: 16px;">
+            <div class="role-card-header client">고객사 역할</div>
+            <div class="role-card-body">
+              <div class="role-name">Client Standard</div>
+              <div class="role-desc">고객사 일반 사용자</div>
+              <div class="perm-list">
+                <span class="perm-tag off">자료 업로드</span>
+                <span class="perm-tag on">리포트 열람</span>
+                <span class="perm-tag off">공유/인쇄</span>
+                <span class="perm-tag on">Excel/PDF</span>
+                <span class="perm-tag on">코멘트</span>
+                <span class="perm-tag off">사용자 추가 신청</span>
+                <span class="perm-tag off">사용자 관리</span>
+                <span class="perm-tag off">권한 설정</span>
+              </div>
+            </div>
+          </div>
+          <div class="role-card">
+            <div class="role-card-header client">고객사 역할</div>
+            <div class="role-card-body">
+              <div class="role-name">Client View Only</div>
+              <div class="role-desc">고객사 열람 전용</div>
+              <div class="perm-list">
+                <span class="perm-tag off">자료 업로드</span>
+                <span class="perm-tag on">리포트 열람</span>
+                <span class="perm-tag off">공유/인쇄</span>
+                <span class="perm-tag off">Excel/PDF</span>
+                <span class="perm-tag off">코멘트</span>
+                <span class="perm-tag off">사용자 추가 신청</span>
+                <span class="perm-tag off">사용자 관리</span>
+                <span class="perm-tag off">권한 설정</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. Permissions -->
+    <div class="section" id="permissions">
+      <div class="section-title">권한 모델 <span class="badge">Dual System</span></div>
+      <div class="section-desc">리포트 데이터 권한(역할 기반 매트릭스) + 사용자별 기능 권한의 이중 구조입니다.</div>
+
+      <div class="diagram-container">
+        <div class="mermaid">
+graph LR
+  subgraph DualPermission["이중 권한 시스템"]
+    direction TB
+    subgraph Matrix["📊 리포트 데이터 권한"]
+      M1["역할(Role) × 리포트(Report)"]
+      M2["열람 · 다운로드 · 인쇄 · 공유 · 코멘트"]
+    end
+    subgraph User["👤 사용자별 기능 권한"]
+      U1["사용자별 8개 기능 플래그"]
+      U2["리포트 전체 OFF 시<br/>18개 페이지별 개별 설정"]
+    end
+  end
+
+  ROLE["역할 배정"] --> Matrix
+  ADMIN["관리자 설정"] --> User
+  Matrix --> ACCESS["최종 접근 권한"]
+  User --> ACCESS
+
+  style Matrix fill:#FFF3E0,stroke:#D04A02
+  style User fill:#E3F2FD,stroke:#0076A8
+        </div>
+      </div>
+
+      <!-- Report Permission Matrix -->
+      <div class="card">
+        <div class="card-title">리포트 데이터 권한 매트릭스 (ReportPermission)</div>
+        <table class="matrix-table">
+          <thead>
+            <tr>
+              <th>리포트</th>
+              <th>Admin 열람</th>
+              <th>Admin 다운</th>
+              <th>Admin 인쇄</th>
+              <th>Manager 열람</th>
+              <th>Manager 다운</th>
+              <th>Manager 인쇄</th>
+              <th>Viewer 열람</th>
+              <th>Viewer 다운</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>매출 현황</td>
+              <td class="check">&#10003;</td><td class="check">&#10003;</td><td class="check">&#10003;</td>
+              <td class="check">&#10003;</td><td class="check">&#10003;</td><td class="check">&#10003;</td>
+              <td class="check">&#10003;</td><td class="cross">—</td>
+            </tr>
+            <tr>
+              <td>재무 보고서</td>
+              <td class="check">&#10003;</td><td class="check">&#10003;</td><td class="check">&#10003;</td>
+              <td class="check">&#10003;</td><td class="check">&#10003;</td><td class="cross">—</td>
+              <td class="check">&#10003;</td><td class="cross">—</td>
+            </tr>
+            <tr>
+              <td>비감사용역 현황</td>
+              <td class="check">&#10003;</td><td class="check">&#10003;</td><td class="check">&#10003;</td>
+              <td class="check">&#10003;</td><td class="cross">—</td><td class="cross">—</td>
+              <td class="check">&#10003;</td><td class="cross">—</td>
+            </tr>
+            <tr>
+              <td>인력 현황</td>
+              <td class="check">&#10003;</td><td class="check">&#10003;</td><td class="check">&#10003;</td>
+              <td class="check">&#10003;</td><td class="cross">—</td><td class="check">&#10003;</td>
+              <td class="cross">—</td><td class="cross">—</td>
+            </tr>
+            <tr>
+              <td>프로젝트 진행</td>
+              <td class="check">&#10003;</td><td class="check">&#10003;</td><td class="check">&#10003;</td>
+              <td class="check">&#10003;</td><td class="check">&#10003;</td><td class="cross">—</td>
+              <td class="cross">—</td><td class="cross">—</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- User-level Permissions -->
+      <div class="card">
+        <div class="card-title">사용자별 기능 권한 (UserPermission) — 8개 플래그</div>
+        <table class="matrix-table">
+          <thead>
+            <tr>
+              <th>권한 플래그</th>
+              <th>설명</th>
+              <th>비활성 시 동작</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>can_view_report</td><td>전체 리포트 열람</td><td>개별 페이지(18개) 설정 가능</td></tr>
+            <tr><td>can_upload</td><td>자료실 업로드</td><td>업로드 버튼 비노출</td></tr>
+            <tr><td>can_pdf</td><td>PDF 다운로드</td><td>PDF 버튼 비노출</td></tr>
+            <tr><td>can_excel</td><td>Excel 내보내기</td><td>Excel 버튼 비노출</td></tr>
+            <tr><td>can_print</td><td>인쇄</td><td>인쇄 버튼 비노출</td></tr>
+            <tr><td>can_share</td><td>공유</td><td>공유 버튼 비노출</td></tr>
+            <tr><td>can_comment</td><td>코멘트 작성</td><td>코멘트 읽기만 가능</td></tr>
+            <tr><td>can_request_user</td><td>사용자 추가 신청</td><td>신청 메뉴 비노출</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 4. Auth Flow -->
+    <div class="section" id="auth">
+      <div class="section-title">인증 흐름 <span class="badge">JWT + SSO Ready</span></div>
+      <div class="section-desc">현재 JWT 로컬 인증이며, SSO 전환을 위한 추상화 레이어가 준비되어 있습니다.</div>
+
+      <div class="flow-steps">
+        <div class="flow-step">
+          <div class="step-num">1</div>
+          <div class="step-title">로그인 요청</div>
+          <div class="step-desc">POST /api/auth/login<br/>email + password</div>
+        </div>
+        <div class="flow-step">
+          <div class="step-num">2</div>
+          <div class="step-title">비밀번호 검증</div>
+          <div class="step-desc">bcrypt 해시 비교<br/>실패 시 감사 로그</div>
+        </div>
+        <div class="flow-step">
+          <div class="step-num">3</div>
+          <div class="step-title">JWT 발급</div>
+          <div class="step-desc">HS256 서명<br/>60분 만료</div>
+        </div>
+        <div class="flow-step">
+          <div class="step-num">4</div>
+          <div class="step-title">토큰 저장</div>
+          <div class="step-desc">localStorage<br/>access_token + user</div>
+        </div>
+        <div class="flow-step">
+          <div class="step-num">5</div>
+          <div class="step-title">API 요청</div>
+          <div class="step-desc">Bearer Token 헤더<br/>401 시 자동 로그아웃</div>
+        </div>
+      </div>
+
+      <div class="diagram-container">
+        <div class="mermaid">
+sequenceDiagram
+  participant U as 사용자
+  participant F as Frontend<br/>(AuthProvider)
+  participant B as Backend<br/>(FastAPI)
+  participant DB as Database
+
+  U->>F: 이메일 + 비밀번호 입력
+  F->>B: POST /api/auth/login
+  B->>DB: 사용자 조회
+  DB-->>B: User 레코드
+  B->>B: bcrypt 비밀번호 검증
+  alt 인증 성공
+    B->>B: JWT 토큰 생성 (HS256, 60분)
+    B-->>F: {access_token, user}
+    F->>F: localStorage 저장
+    F-->>U: Dashboard로 리다이렉트
+  else 인증 실패
+    B->>DB: 감사 로그 기록 (로그인 실패)
+    B-->>F: 401 Unauthorized
+    F-->>U: 에러 메시지 표시
+  end
+
+  Note over F,B: 이후 모든 API 요청에 Bearer Token 포함
+  F->>B: GET /api/auth/me (토큰 검증)
+  B-->>F: 사용자 정보 반환
+        </div>
+      </div>
+
+      <!-- SSO Transition -->
+      <div class="card">
+        <div class="card-title">SSO 전환 로드맵</div>
+        <div class="diagram-container" style="box-shadow:none; border:none; padding:0;">
+          <div class="mermaid">
+graph LR
+  A["현재: JWT 로컬 인증"] -->|"config: AUTH_PROVIDER"| B["SSO 전환"]
+  B --> C1["1. config.py<br/>AUTH_PROVIDER = sso"]
+  B --> C2["2. auth_utils.py<br/>SSO 토큰 검증 추가"]
+  B --> C3["3. routers/auth.py<br/>SSO 콜백 대체"]
+  B --> C4["4. Frontend<br/>SSO 리다이렉트"]
+
+  style A fill:#E8F5E9,stroke:#22992E
+  style B fill:#FFF3E0,stroke:#D04A02
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 5. Pages -->
+    <div class="section" id="pages">
+      <div class="section-title">페이지 구조 <span class="badge">10 Pages</span></div>
+      <div class="section-desc">Admin 사이드바 기준 전체 네비게이션 구조입니다.</div>
+
+      <div class="nav-map">
+        <div class="nav-item">
+          <div class="nav-icon">📊</div>
+          <div class="nav-info">
+            <div class="nav-title">Dashboard</div>
+            <div class="nav-path">/admin</div>
+          </div>
+        </div>
+        <div class="nav-item">
+          <div class="nav-icon">👥</div>
+          <div class="nav-info">
+            <div class="nav-title">고객사 계정 관리</div>
+            <div class="nav-path">/admin/accounts</div>
+          </div>
+        </div>
+        <div class="nav-item">
+          <div class="nav-icon">🏢</div>
+          <div class="nav-info">
+            <div class="nav-title">그룹(회사/자회사) 관리</div>
+            <div class="nav-path">/admin/groups</div>
+          </div>
+        </div>
+        <div class="nav-item">
+          <div class="nav-icon">🔑</div>
+          <div class="nav-info">
+            <div class="nav-title">PwC 내부 사용자</div>
+            <div class="nav-path">/admin/pwc-users</div>
+          </div>
+        </div>
+        <div class="nav-item">
+          <div class="nav-icon">📋</div>
+          <div class="nav-info">
+            <div class="nav-title">사용자 추가 신청</div>
+            <div class="nav-path">/admin/requests</div>
+          </div>
+        </div>
+        <div class="nav-item">
+          <div class="nav-icon">🔒</div>
+          <div class="nav-info">
+            <div class="nav-title">리포트 접근 권한</div>
+            <div class="nav-path">/admin/permissions</div>
+          </div>
+        </div>
+        <div class="nav-item">
+          <div class="nav-icon">🏷️</div>
+          <div class="nav-info">
+            <div class="nav-title">역할 정의</div>
+            <div class="nav-path">/admin/roles</div>
+          </div>
+        </div>
+        <div class="nav-item">
+          <div class="nav-icon">🛡️</div>
+          <div class="nav-info">
+            <div class="nav-title">계정 상태/보안</div>
+            <div class="nav-path">/admin/security</div>
+          </div>
+        </div>
+        <div class="nav-item">
+          <div class="nav-icon">📁</div>
+          <div class="nav-info">
+            <div class="nav-title">자료 요청</div>
+            <div class="nav-path">/admin/data-request</div>
+          </div>
+        </div>
+        <div class="nav-item">
+          <div class="nav-icon">📝</div>
+          <div class="nav-info">
+            <div class="nav-title">로그/방문이력</div>
+            <div class="nav-path">/admin/logs</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 6. Triggers -->
+    <div class="section" id="triggers">
+      <div class="section-title">이벤트 / 트리거 <span class="badge">11 Events</span></div>
+      <div class="section-desc">시스템에서 발생하는 주요 이벤트와 그에 따른 자동 동작(이메일, 감사 로그 등)입니다.</div>
+
+      <div class="diagram-container">
+        <div class="mermaid">
+graph TB
+  subgraph Events["이벤트 발생"]
+    E1["사용자 생성"]
+    E2["역할/상태 변경"]
+    E3["로그인 성공/실패"]
+    E4["리포트 열람/다운로드"]
+    E5["요청 승인/반려"]
+    E6["비밀번호 초기화"]
+    E7["권한 변경"]
+    E8["그룹 생성"]
+  end
+
+  subgraph Actions["자동 동작"]
+    A1["📧 Welcome 이메일"]
+    A2["📧 변경 알림 이메일"]
+    A3["📋 감사 로그 기록"]
+    A4["🔄 상태 업데이트"]
+  end
+
+  E1 --> A1
+  E1 --> A3
+  E2 -->|"알림 ON 시"| A2
+  E2 --> A3
+  E3 --> A3
+  E4 --> A3
+  E5 --> A3
+  E5 --> A4
+  E6 --> A3
+  E7 --> A3
+  E8 --> A3
+
+  style Events fill:#FFF3E0,stroke:#D04A02
+  style Actions fill:#E3F2FD,stroke:#0076A8
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">이벤트-액션 매핑 상세</div>
+
+        <div class="trigger-row">
+          <div class="trigger-event">사용자 생성</div>
+          <div class="trigger-arrow">→</div>
+          <div class="trigger-actions">
+            <span class="trigger-action email">Welcome 이메일 (임시 PW 포함)</span>
+            <span class="trigger-action log">감사 로그: 사용자 생성</span>
+          </div>
+        </div>
+
+        <div class="trigger-row">
+          <div class="trigger-event">역할 변경</div>
+          <div class="trigger-arrow">→</div>
+          <div class="trigger-actions">
+            <span class="trigger-action email">변경 알림 이메일 (토글 ON 시)</span>
+            <span class="trigger-action log">감사 로그: 권한 변경</span>
+          </div>
+        </div>
+
+        <div class="trigger-row">
+          <div class="trigger-event">상태 변경 (활성↔비활성)</div>
+          <div class="trigger-arrow">→</div>
+          <div class="trigger-actions">
+            <span class="trigger-action email">변경 알림 이메일 (토글 ON 시)</span>
+            <span class="trigger-action log">감사 로그: 사용자 비활성화</span>
+            <span class="trigger-action status">계정 상태 업데이트</span>
+          </div>
+        </div>
+
+        <div class="trigger-row">
+          <div class="trigger-event">로그인 성공</div>
+          <div class="trigger-arrow">→</div>
+          <div class="trigger-actions">
+            <span class="trigger-action log">감사 로그: 로그인</span>
+          </div>
+        </div>
+
+        <div class="trigger-row">
+          <div class="trigger-event">로그인 실패</div>
+          <div class="trigger-arrow">→</div>
+          <div class="trigger-actions">
+            <span class="trigger-action log">감사 로그: 로그인 실패</span>
+            <span class="trigger-action status">실패 횟수 카운트</span>
+          </div>
+        </div>
+
+        <div class="trigger-row">
+          <div class="trigger-event">리포트 열람</div>
+          <div class="trigger-arrow">→</div>
+          <div class="trigger-actions">
+            <span class="trigger-action log">감사 로그: 리포트 열람</span>
+          </div>
+        </div>
+
+        <div class="trigger-row">
+          <div class="trigger-event">리포트 다운로드</div>
+          <div class="trigger-arrow">→</div>
+          <div class="trigger-actions">
+            <span class="trigger-action log">감사 로그: 리포트 다운로드</span>
+          </div>
+        </div>
+
+        <div class="trigger-row">
+          <div class="trigger-event">요청 승인</div>
+          <div class="trigger-arrow">→</div>
+          <div class="trigger-actions">
+            <span class="trigger-action log">감사 로그: 요청 승인</span>
+            <span class="trigger-action status">요청 상태 → approved</span>
+          </div>
+        </div>
+
+        <div class="trigger-row">
+          <div class="trigger-event">요청 반려</div>
+          <div class="trigger-arrow">→</div>
+          <div class="trigger-actions">
+            <span class="trigger-action log">감사 로그: 요청 반려</span>
+            <span class="trigger-action status">요청 상태 → rejected</span>
+          </div>
+        </div>
+
+        <div class="trigger-row">
+          <div class="trigger-event">비밀번호 초기화</div>
+          <div class="trigger-arrow">→</div>
+          <div class="trigger-actions">
+            <span class="trigger-action log">감사 로그: 비밀번호 초기화</span>
+            <span class="trigger-action status">PW 만료일 → 1일 후</span>
+          </div>
+        </div>
+
+        <div class="trigger-row">
+          <div class="trigger-event">그룹 생성</div>
+          <div class="trigger-arrow">→</div>
+          <div class="trigger-actions">
+            <span class="trigger-action log">감사 로그: 그룹 생성</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 7. Reports -->
+    <div class="section" id="reports">
+      <div class="section-title">리포트 페이지 구조 <span class="badge">18 Pages</span></div>
+      <div class="section-desc">4개 카테고리, 18개 분석 페이지로 구성됩니다. 사용자별 개별 페이지 접근 권한 설정이 가능합니다.</div>
+
+      <div class="card">
+        <div class="report-tree">
+          <div class="tree-category">
+            <div class="tree-category-name">손익분석 (5)</div>
+            <div class="tree-items">
+              <div class="tree-item">PL 요약</div>
+              <div class="tree-item">PL 추이분석</div>
+              <div class="tree-item">PL 계정분석</div>
+              <div class="tree-item">매출분석</div>
+              <div class="tree-item">손익항목</div>
+            </div>
+          </div>
+          <div class="tree-category">
+            <div class="tree-category-name">재무상태분석 (3)</div>
+            <div class="tree-items">
+              <div class="tree-item">BS 요약</div>
+              <div class="tree-item">BS 추이분석</div>
+              <div class="tree-item">BS 계정분석</div>
+            </div>
+          </div>
+          <div class="tree-category">
+            <div class="tree-category-name">전표분석 (2)</div>
+            <div class="tree-items">
+              <div class="tree-item">전표분석내역</div>
+              <div class="tree-item">전표검색</div>
+            </div>
+          </div>
+          <div class="tree-category">
+            <div class="tree-category-name">시나리오분석 (6)</div>
+            <div class="tree-items">
+              <div class="tree-item">동일금액 중복 전표</div>
+              <div class="tree-item">현금지급 後 부채인식</div>
+              <div class="tree-item">주말 현금지급</div>
+              <div class="tree-item">고액 현금지급</div>
+              <div class="tree-item">비용인식 동시 현금지급</div>
+              <div class="tree-item">Seldom Used Customer</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:16px;">
+        <div class="card-title">페이지별 권한 설정 흐름</div>
+        <div class="diagram-container" style="box-shadow:none;border:none;padding:0;">
+          <div class="mermaid">
+flowchart LR
+  A["can_view_report = ON"] -->|"전체 리포트 열람"| B["18개 페이지 모두 접근"]
+  A2["can_view_report = OFF"] -->|"설정 버튼 클릭"| C["페이지별 팝업"]
+  C --> D["카테고리별 체크박스"]
+  D --> E["N/16 페이지 허용<br/>전체 선택 가능"]
+
+  style A fill:#E8F5E9,stroke:#22992E
+  style A2 fill:#FFEBEE,stroke:#E0301E
+  style C fill:#FFF3E0,stroke:#D04A02
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 8. Security -->
+    <div class="section" id="security">
+      <div class="section-title">보안 기능 <span class="badge">Security</span></div>
+      <div class="section-desc">구현 완료, 부분 구현, 미구현 보안 기능의 현황입니다.</div>
+
+      <div class="security-grid">
+        <div class="security-card">
+          <div class="icon green">🔐</div>
+          <h4>비밀번호 해싱</h4>
+          <p>bcrypt 알고리즘으로 안전하게 해싱. passlib 라이브러리 사용</p>
+          <span class="status active">구현 완료</span>
+        </div>
+        <div class="security-card">
+          <div class="icon green">🎫</div>
+          <h4>JWT 인증</h4>
+          <p>HS256 서명, 60분 만료. Bearer Token 방식</p>
+          <span class="status active">구현 완료</span>
+        </div>
+        <div class="security-card">
+          <div class="icon green">📋</div>
+          <h4>감사 로그</h4>
+          <p>11가지 이벤트 타입 자동 기록. IP, 시간, 수행자 추적</p>
+          <span class="status active">구현 완료</span>
+        </div>
+        <div class="security-card">
+          <div class="icon green">🔑</div>
+          <h4>비밀번호 정책 UI</h4>
+          <p>최소 길이, 대문자/숫자/특문 필수, 실패 허용 횟수, 만료 주기</p>
+          <span class="status active">구현 완료</span>
+        </div>
+        <div class="security-card">
+          <div class="icon green">👤</div>
+          <h4>계정 상태 관리</h4>
+          <p>active / inactive / pending 3단계. 관리자 토글 가능</p>
+          <span class="status active">구현 완료</span>
+        </div>
+        <div class="security-card">
+          <div class="icon green">📧</div>
+          <h4>도메인 검증</h4>
+          <p>@pwc.com 도메인 admin 역할 제한. UI 경고 표시</p>
+          <span class="status active">구현 완료</span>
+        </div>
+        <div class="security-card">
+          <div class="icon blue">🔒</div>
+          <h4>2FA (이중 인증)</h4>
+          <p>필드 저장 중이나 실제 인증 흐름 미구현. Admin/Manager 기본 ON</p>
+          <span class="status partial">필드만 구현</span>
+        </div>
+        <div class="security-card">
+          <div class="icon blue">⭐</div>
+          <h4>신뢰도 등급</h4>
+          <p>high / normal / low 3단계. 필드 존재하나 접근 제어 미적용</p>
+          <span class="status partial">필드만 구현</span>
+        </div>
+        <div class="security-card">
+          <div class="icon orange">🚫</div>
+          <h4>계정 잠금</h4>
+          <p>로그인 실패 N회 초과 시 자동 잠금. 정책 UI 존재, 시행 미구현</p>
+          <span class="status planned">미구현</span>
+        </div>
+        <div class="security-card">
+          <div class="icon orange">⏱️</div>
+          <h4>Rate Limiting</h4>
+          <p>로그인 API 속도 제한. DDoS/무차별 대입 방어</p>
+          <span class="status planned">미구현</span>
+        </div>
+        <div class="security-card">
+          <div class="icon orange">🔄</div>
+          <h4>Refresh Token</h4>
+          <p>토큰 갱신 메커니즘. 현재 60분 후 재로그인 필요</p>
+          <span class="status planned">미구현</span>
+        </div>
+        <div class="security-card">
+          <div class="icon orange">🌐</div>
+          <h4>IP 기반 접근 제어</h4>
+          <p>화이트리스트/블랙리스트 IP 관리</p>
+          <span class="status planned">미구현</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 9. Database Schema -->
+    <div class="section" id="database">
+      <div class="section-title">데이터베이스 스키마 <span class="badge">9 Tables</span></div>
+      <div class="section-desc">SQLite 기반, SQLAlchemy ORM 사용. 실서비스는 PostgreSQL 전환 예정</div>
+
+      <div class="diagram-container">
+        <div class="mermaid">
+erDiagram
+  users ||--o{ user_permissions : "has"
+  users ||--o{ audit_logs : "generates"
+  users ||--o{ user_add_requests : "requests"
+  companies ||--o{ subsidiaries : "has"
+  companies ||--o{ groups : "belongs_to"
+  roles ||--o{ report_permissions : "has"
+
+  users {
+    int id PK
+    string name
+    string email UK
+    string password_hash
+    string role
+    string status
+    string company
+    string subsidiary
+    string trust_level
+    bool two_fa
+    date password_expiry
+    datetime last_login
+  }
+
+  roles {
+    int id PK
+    string name
+    string category
+    string description
+    json permissions
+  }
+
+  report_permissions {
+    int id PK
+    string report_name
+    string role_name
+    bool can_view
+    bool can_download
+    bool can_print
+    bool can_share
+    bool can_comment
+  }
+
+  user_permissions {
+    int id PK
+    int user_id FK
+    bool can_view_report
+    bool can_upload
+    bool can_pdf
+    bool can_excel
+    bool can_print
+    bool can_share
+    bool can_comment
+    bool can_request_user
+    json allowed_pages
+  }
+
+  audit_logs {
+    int id PK
+    datetime timestamp
+    string actor
+    string action_type
+    string detail
+    string target
+    string ip_address
+  }
+
+  user_add_requests {
+    int id PK
+    string requester_name
+    string target_name
+    string target_email
+    string company
+    string role
+    string status
+    datetime created_at
+  }
+
+  companies {
+    int id PK
+    string name UK
+    datetime created_at
+  }
+
+  subsidiaries {
+    int id PK
+    int company_id FK
+    string name
+  }
+
+  groups {
+    int id PK
+    string name
+    string company
+    string description
+  }
+        </div>
+      </div>
+    </div>
+
+    <!-- 10. Tech Stack -->
+    <div class="section" id="tech">
+      <div class="section-title">기술 스택 <span class="badge">Tech</span></div>
+      <div class="section-desc">프론트엔드, 백엔드, 배포 환경의 기술 구성</div>
+
+      <div class="card">
+        <div class="tech-stack">
+          <div class="tech-group">
+            <h4>Frontend</h4>
+            <span class="tech-tag">Next.js 14</span>
+            <span class="tech-tag">TypeScript</span>
+            <span class="tech-tag">Tailwind CSS</span>
+            <span class="tech-tag">App Router</span>
+          </div>
+          <div class="tech-group">
+            <h4>Backend</h4>
+            <span class="tech-tag">FastAPI</span>
+            <span class="tech-tag">Python 3.12</span>
+            <span class="tech-tag">SQLAlchemy</span>
+            <span class="tech-tag">Pydantic</span>
+          </div>
+          <div class="tech-group">
+            <h4>Auth & Email</h4>
+            <span class="tech-tag">JWT (HS256)</span>
+            <span class="tech-tag">bcrypt</span>
+            <span class="tech-tag">Gmail SMTP</span>
+          </div>
+          <div class="tech-group">
+            <h4>Database</h4>
+            <span class="tech-tag">SQLite (dev)</span>
+            <span class="tech-tag">PostgreSQL (prod)</span>
+          </div>
+          <div class="tech-group">
+            <h4>Deployment</h4>
+            <span class="tech-tag">Vercel</span>
+            <span class="tech-tag">Render</span>
+            <span class="tech-tag">Docker</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: 'base',
+      themeVariables: {
+        primaryColor: '#FFF3E0',
+        primaryBorderColor: '#D04A02',
+        primaryTextColor: '#2D2D2D',
+        lineColor: '#D04A02',
+        secondaryColor: '#E3F2FD',
+        tertiaryColor: '#E8F5E9',
+        fontSize: '13px'
+      },
+      flowchart: { curve: 'basis', padding: 20 },
+      sequence: { mirrorActors: false, messageAlign: 'center' }
+    });
+
+    // Sticky nav active state
+    const sections = document.querySelectorAll('.section');
+    const navLinks = document.querySelectorAll('.nav a');
+
+    window.addEventListener('scroll', () => {
+      let current = '';
+      sections.forEach(s => {
+        if (window.scrollY >= s.offsetTop - 200) current = s.id;
+      });
+      navLinks.forEach(a => {
+        a.classList.toggle('active', a.getAttribute('href') === '#' + current);
+      });
+    });
+
+    // Smooth scroll
+    navLinks.forEach(a => {
+      a.addEventListener('click', e => {
+        e.preventDefault();
+        document.querySelector(a.getAttribute('href')).scrollIntoView({ behavior: 'smooth' });
+      });
+    });
+  </script>
+
+</body>
+</html>

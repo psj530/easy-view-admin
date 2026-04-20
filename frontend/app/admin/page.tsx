@@ -8,6 +8,7 @@ export default function AdminDashboard() {
   const [stats, setStats] = useState({ total: 0, active: 0, companies: 0, recentUsers: [] as Record<string, unknown>[] });
   const [auditStats, setAuditStats] = useState({ daily_stats: [] as { date: string; count: number }[], action_type_stats: [] as { action_type: string; count: number }[], total_logs: 0 });
   const [recentLogs, setRecentLogs] = useState<Record<string, unknown>[]>([]);
+  const [dataLoaded, setDataLoaded] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -29,7 +30,8 @@ export default function AdminDashboard() {
       });
       setAuditStats(auditStatsRes);
       setRecentLogs(logsRes.logs || []);
-    } catch { /* 로딩 실패 시 빈 상태 유지 */ }
+      setDataLoaded(true);
+    } catch { setDataLoaded(true); }
   }
 
   const statCards = [

@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import UserRegistrationModal from "../../components/UserRegistrationModal";
 import { showToast } from "../../components/Toast";
 import { usersApi, companiesApi, securityApi, groupsApi } from "../../lib/api";
+import InfoPopup from "../../components/InfoPopup";
 
 interface User {
   id: number; name: string; email: string; company: string; group_id: number | null;
@@ -27,7 +28,6 @@ export default function AccountsPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("전체");
   const [roleFilter, setRoleFilter] = useState("전체");
@@ -44,9 +44,21 @@ export default function AccountsPage() {
 
   // 수정 모달
   const [editUser, setEditUser] = useState<User | null>(null);
-  const [editForm, setEditForm] = useState({ name: "", email: "", company: "", role: "", status: "" });
+  const [editForm, setEditForm] = useState({ name: "", email: "", company: "", group_id: null as number | null, role: "", status: "" });
   const [editSaving, setEditSaving] = useState(false);
   const [notifyUser, setNotifyUser] = useState(true);
+  const [showRoleInfo, setShowRoleInfo] = useState(false);
+  // 회사/자회사 등록 (통합 모달)
+  const [showNewCompany, setShowNewCompany] = useState(false);
+  const [addToExisting, setAddToExisting] = useState(false);
+  const [existingCoId, setExistingCoId] = useState(0);
+  const [newCoName, setNewCoName] = useState("");
+  const [newSubs, setNewSubs] = useState<string[]>([""]);
+  const [coSaving, setCoSaving] = useState(false);
+  // 수정 모달 내 인라인용
+  const [showNewSub, setShowNewSub] = useState(false);
+  const [newSubName, setNewSubName] = useState("");
+  const [newSubCoId, setNewSubCoId] = useState(0);
 
   // 비밀번호 정책
   const [showPolicy, setShowPolicy] = useState(false);
@@ -55,7 +67,7 @@ export default function AccountsPage() {
   const [requireNumber, setRequireNumber] = useState(true);
   const [requireSpecial, setRequireSpecial] = useState(true);
   const [maxFailAttempts, setMaxFailAttempts] = useState(5);
-  const [passwordExpiry, setPasswordExpiry] = useState(90);
+  const [passwordExpiry, setPasswordExpiry] = useState(1825);
 
   const loadCompanies = useCallback(async () => {
     try {
@@ -146,8 +158,45 @@ export default function AccountsPage() {
     } catch (e: unknown) { showToast(e instanceof Error ? e.message : "실패", "error"); }
     finally { setBulkSaving(false); }
   };
+  const saveCompanyModal = async () => {
+    setCoSaving(true);
+    try {
+      if (addToExisting) {
+        // 기존 회사에 자회사 추가
+        if (!existingCoId) { showToast("회사를 선택하세요.", "warning"); setCoSaving(false); return; }
+        const subs = newSubs.filter((s) => s.trim());
+        if (subs.length === 0) { showToast("자회사명을 입력하세요.", "warning"); setCoSaving(false); return; }
+        for (const s of subs) await companiesApi.createSubsidiary({ name: s.trim(), company_id: existingCoId });
+        const coName = companies.find((c) => c.id === existingCoId)?.name || "";
+        showToast(`${coName}에 자회사 ${subs.length}개 추가 완료`, "success");
+      } else {
+        // 신규 회사 + 자회사
+        if (!newCoName.trim()) { showToast("회사명을 입력하세요.", "warning"); setCoSaving(false); return; }
+        const res = await companiesApi.create({ name: newCoName });
+        const subs = newSubs.filter((s) => s.trim());
+        for (const s of subs) await companiesApi.createSubsidiary({ name: s.trim(), company_id: res.id });
+        showToast(`"${newCoName}" 등록 완료${subs.length > 0 ? ` (자회사 ${subs.length}개)` : ""}`, "success");
+      }
+      setShowNewCompany(false);
+      await loadCompanies();
+      companiesApi.names().then((r) => setCompanyOptions(["전체", ...(r.names || [])])).catch(() => {});
+    } catch (e) { showToast(e instanceof Error ? e.message : "실패", "error"); }
+    finally { setCoSaving(false); }
+  };
+  const addSubInline = async () => {
+    if (!newSubName.trim() || !newSubCoId) return;
+    try {
+      await companiesApi.createSubsidiary({ name: newSubName, company_id: newSubCoId });
+      showToast(`"${newSubName}" 등록 완료`, "success");
+      setNewSubName(""); setShowNewSub(false);
+      await loadCompanies();
+    } catch (e) { showToast(e instanceof Error ? e.message : "실패", "error"); }
+  };
+
   const openEdit = (user: User) => {
-    setEditUser(user); setEditForm({ name: user.name, email: user.email, company: user.company, role: user.role, status: user.status }); setNotifyUser(true);
+    // 비 pwc.com인데 admin이면 viewer로 자동 교정
+    const correctedRole = (!user.email.endsWith("@pwc.com") && (user.role === "admin" || user.role === "manager")) ? "viewer" : user.role;
+    setEditUser(user); setEditForm({ name: user.name, email: user.email, company: user.company, group_id: user.group_id, role: correctedRole, status: user.status }); setNotifyUser(true);
   };
   const saveEdit = async () => {
     if (!editUser) return;
@@ -157,7 +206,7 @@ export default function AccountsPage() {
       return;
     }
     setEditSaving(true);
-    try { await usersApi.update(editUser.id, editForm); showToast(notifyUser ? "수정 완료 (알림 발송)" : "수정 완료", "success"); setEditUser(null); await fetchUsers(); await loadSecurity(); }
+    try { await usersApi.update(editUser.id, editForm); showToast(notifyUser ? "수정 완료 (알림 발송)" : "수정 완료", "success"); setEditUser(null); await fetchUsers(); await loadSecurity(); await loadCompanies(); }
     catch (e: unknown) { showToast(e instanceof Error ? e.message : "실패", "error"); }
     finally { setEditSaving(false); }
   };
@@ -171,11 +220,15 @@ export default function AccountsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-pwc-black">계정 관리</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-bold text-pwc-black">계정 관리</h1>
+            <button onClick={() => setShowRoleInfo(true)} className="w-6 h-6 rounded-full border border-pwc-gray-300 text-pwc-gray-400 text-xs hover:border-pwc-orange hover:text-pwc-orange transition-colors" title="역할/정책 안내">?</button>
+          </div>
           <p className="text-sm text-pwc-gray-500 mt-1">사용자 계정, 보안 상태, 비밀번호 정책을 통합 관리합니다.</p>
         </div>
         <div className="flex gap-2">
           <button onClick={() => setShowPolicy(!showPolicy)} className="btn-secondary text-sm">{showPolicy ? "정책 닫기" : "비밀번호 정책"}</button>
+          <button onClick={() => { setShowNewCompany(true); setNewCoName(""); setNewSubs([""]); setAddToExisting(false); setExistingCoId(0); }} className="btn-secondary text-sm">+ 회사/자회사</button>
           <button onClick={() => setModalOpen(true)} className="btn-primary">+ 사용자 등록</button>
         </div>
       </div>
@@ -190,30 +243,38 @@ export default function AccountsPage() {
       </div>
 
 
-      {/* 비밀번호 정책 (접이식) */}
+      {/* 비밀번호 정책 팝업 */}
       {showPolicy && (
-        <div className="card border-l-4 border-l-pwc-orange">
-          <h3 className="font-semibold text-pwc-black mb-4">비밀번호 정책 설정</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div><label className="block text-sm font-medium text-pwc-gray-700 mb-1">최소 길이</label><input type="number" value={minLength} onChange={(e) => setMinLength(Number(e.target.value))} min={6} max={32} className="input-field w-24" /></div>
-            <div><label className="block text-sm font-medium text-pwc-gray-700 mb-1">실패 허용 횟수</label><input type="number" value={maxFailAttempts} onChange={(e) => setMaxFailAttempts(Number(e.target.value))} min={3} max={10} className="input-field w-24" /></div>
-            <div><label className="block text-sm font-medium text-pwc-gray-700 mb-1">만료 주기 (일)</label><input type="number" value={passwordExpiry} onChange={(e) => setPasswordExpiry(Number(e.target.value))} min={30} max={365} className="input-field w-24" /></div>
+        <div className="fixed inset-0 z-[200] flex items-center justify-center">
+          <div className="fixed inset-0 bg-black/50" onClick={() => setShowPolicy(false)} />
+          <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 p-6">
+            <h2 className="text-lg font-semibold text-pwc-black mb-4">비밀번호 정책 설정</h2>
+            <div className="space-y-4">
+              <div className="grid grid-cols-3 gap-4">
+                <div><label className="block text-xs font-medium text-pwc-gray-700 mb-1">최소 길이</label><input type="number" value={minLength} onChange={(e) => setMinLength(Number(e.target.value))} min={6} max={32} className="input-field" /></div>
+                <div><label className="block text-xs font-medium text-pwc-gray-700 mb-1">실패 허용</label><input type="number" value={maxFailAttempts} onChange={(e) => setMaxFailAttempts(Number(e.target.value))} min={3} max={10} className="input-field" /></div>
+                <div><label className="block text-xs font-medium text-pwc-gray-700 mb-1">만료 (일)</label><input type="number" value={passwordExpiry} onChange={(e) => setPasswordExpiry(Number(e.target.value))} min={30} max={3650} className="input-field" /></div>
+              </div>
+              <div className="flex flex-wrap gap-4">
+                {[{ c: requireUppercase, s: setRequireUppercase, l: "대문자 필수" }, { c: requireNumber, s: setRequireNumber, l: "숫자 필수" }, { c: requireSpecial, s: setRequireSpecial, l: "특수문자 필수" }].map((i) => (
+                  <label key={i.l} className="flex items-center gap-2 text-sm text-pwc-gray-700 cursor-pointer">
+                    <input type="checkbox" checked={i.c} onChange={(e) => i.s(e.target.checked)} className="w-4 h-4 rounded border-pwc-gray-300 text-pwc-orange focus:ring-pwc-orange" />{i.l}
+                  </label>
+                ))}
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 mt-6">
+              <button onClick={() => setShowPolicy(false)} className="text-sm px-4 py-2 rounded border border-pwc-gray-300 text-pwc-gray-700 hover:bg-pwc-gray-50">취소</button>
+              <button onClick={() => { showToast("비밀번호 정책이 저장되었습니다.", "success"); setShowPolicy(false); }} className="btn-primary">저장</button>
+            </div>
           </div>
-          <div className="flex gap-6 mt-4">
-            {[{ c: requireUppercase, s: setRequireUppercase, l: "대문자 필수" }, { c: requireNumber, s: setRequireNumber, l: "숫자 필수" }, { c: requireSpecial, s: setRequireSpecial, l: "특수문자 필수" }].map((i) => (
-              <label key={i.l} className="flex items-center gap-2 text-sm text-pwc-gray-700 cursor-pointer">
-                <input type="checkbox" checked={i.c} onChange={(e) => i.s(e.target.checked)} className="w-4 h-4 rounded border-pwc-gray-300 text-pwc-orange focus:ring-pwc-orange" />{i.l}
-              </label>
-            ))}
-          </div>
-          <button onClick={() => showToast("비밀번호 정책이 저장되었습니다.", "success")} className="btn-primary mt-4 text-sm">정책 저장</button>
         </div>
       )}
 
       {/* 검색/필터 */}
       <div className="card">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div><label className="block text-xs font-medium text-pwc-gray-500 mb-1">검색</label><input type="text" value={searchInput} onChange={(e) => setSearchInput(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") setSearch(searchInput); }} placeholder="이름, 이메일, 회사명 (Enter)" className="input-field" /></div>
+          <div><label className="block text-xs font-medium text-pwc-gray-500 mb-1">검색</label><input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="이름, 이메일, 회사명" className="input-field" /></div>
           <div><label className="block text-xs font-medium text-pwc-gray-500 mb-1">상태</label>
             <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="input-field">
               {statusOptions.map((o) => (<option key={o} value={o}>{o === "전체" ? "전체" : o === "active" ? "활성" : o === "inactive" ? "비활성" : "대기"}</option>))}
@@ -317,20 +378,51 @@ export default function AccountsPage() {
         </div>
       </div>
 
-      {/* 수정 모달 - z-[100]으로 헤더 위에 */}
+      {/* 수정 모달 - z-[200]으로 헤더 위에 */}
       {editUser && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/50" onClick={() => setEditUser(null)} />
+        <div className="fixed inset-0 z-[200] flex items-center justify-center">
+          <div className="fixed inset-0 bg-black/50" onClick={() => setEditUser(null)} />
           <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 p-6">
             <h2 className="text-lg font-semibold text-pwc-black mb-4">사용자 정보 수정</h2>
             <div className="space-y-4">
               <div><label className="block text-sm font-medium text-pwc-gray-700 mb-1">이름</label><input type="text" value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} className="input-field" /></div>
               <div><label className="block text-sm font-medium text-pwc-gray-700 mb-1">이메일</label><input type="email" value={editForm.email} onChange={(e) => setEditForm({ ...editForm, email: e.target.value })} className="input-field" /></div>
-              <div><label className="block text-sm font-medium text-pwc-gray-700 mb-1">회사</label>
-                <select value={editForm.company} onChange={(e) => setEditForm({ ...editForm, company: e.target.value })} className="input-field">
-                  {companyOptions.filter((o) => o !== "전체").map((c) => (<option key={c} value={c}>{c}</option>))}
-                  {!companyOptions.includes(editForm.company) && editForm.company && (<option value={editForm.company}>{editForm.company}</option>)}
-                </select>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-sm font-medium text-pwc-gray-700">회사</label>
+                    <button type="button" onClick={() => setShowNewCompany(!showNewCompany)} className="text-[10px] text-pwc-orange hover:underline">+ 신규</button>
+                  </div>
+                  <select value={editForm.company} onChange={(e) => { setEditForm({ ...editForm, company: e.target.value, group_id: null }); }} className="input-field">
+                    {companyOptions.filter((o) => o !== "전체").map((c) => (<option key={c} value={c}>{c}</option>))}
+                    {!companyOptions.includes(editForm.company) && editForm.company && (<option value={editForm.company}>{editForm.company}</option>)}
+                  </select>
+                  {showNewCompany && (
+                    <div className="flex gap-1 mt-1">
+                      <input type="text" value={newCoName} onChange={(e) => setNewCoName(e.target.value)} placeholder="회사명" className="input-field text-xs flex-1" />
+                      <button onClick={async () => { if (!newCoName.trim()) return; try { await companiesApi.create({ name: newCoName }); showToast("등록 완료", "success"); setNewCoName(""); setShowNewCompany(false); await loadCompanies(); companiesApi.names().then((r) => setCompanyOptions(["전체", ...(r.names || [])])).catch(() => {}); } catch (e) { showToast(e instanceof Error ? e.message : "실패", "error"); } }} className="text-xs bg-pwc-orange text-white px-2 rounded">등록</button>
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-sm font-medium text-pwc-gray-700">자회사</label>
+                    <button type="button" onClick={() => { setShowNewSub(!showNewSub); setNewSubCoId(companies.find((c) => c.name === editForm.company)?.id || 0); }} className="text-[10px] text-pwc-orange hover:underline">+ 신규</button>
+                  </div>
+                  <select value={editForm.group_id ?? ""} onChange={(e) => setEditForm({ ...editForm, group_id: e.target.value ? Number(e.target.value) : null })} className="input-field">
+                    <option value="">선택 안 함</option>
+                    {(() => {
+                      const co = companies.find((c) => c.name === editForm.company);
+                      return co?.subsidiaries.map((s) => (<option key={s.id} value={s.id}>{s.name}</option>)) || [];
+                    })()}
+                  </select>
+                  {showNewSub && (
+                    <div className="flex gap-1 mt-1">
+                      <input type="text" value={newSubName} onChange={(e) => setNewSubName(e.target.value)} placeholder="자회사명" className="input-field text-xs flex-1" />
+                      <button onClick={addSubInline} className="text-xs bg-pwc-orange text-white px-2 rounded">등록</button>
+                    </div>
+                  )}
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -362,8 +454,8 @@ export default function AccountsPage() {
 
       {/* 일괄 변경 모달 */}
       {showBulkModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/50" onClick={() => setShowBulkModal(false)} />
+        <div className="fixed inset-0 z-[200] flex items-center justify-center">
+          <div className="fixed inset-0 bg-black/50" onClick={() => setShowBulkModal(false)} />
           <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 p-6">
             <h2 className="text-lg font-semibold text-pwc-black mb-1">일괄 변경</h2>
             <p className="text-sm text-pwc-gray-500 mb-4">{selectedUsers.length}명의 계정을 일괄 변경합니다. 변경하지 않을 항목은 비워두세요.</p>
@@ -402,6 +494,124 @@ export default function AccountsPage() {
             <div className="flex justify-end gap-2 mt-6">
               <button onClick={() => setShowBulkModal(false)} className="text-sm px-4 py-2 rounded border border-pwc-gray-300 text-pwc-gray-700 hover:bg-pwc-gray-50">취소</button>
               <button onClick={saveBulk} disabled={bulkSaving} className="btn-primary">{bulkSaving ? "변경 중..." : `${selectedUsers.length}명 일괄 변경`}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 회사/자회사 통합 등록 모달 */}
+      {showNewCompany && !editUser && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center">
+          <div className="fixed inset-0 bg-black/50" onClick={() => setShowNewCompany(false)} />
+          <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 p-6">
+            <h2 className="text-lg font-semibold text-pwc-black mb-4">회사/자회사 등록</h2>
+            <div className="flex gap-0 border-b border-pwc-gray-200 mb-5">
+              <button onClick={() => setAddToExisting(false)} className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${!addToExisting ? "border-pwc-orange text-pwc-orange" : "border-transparent text-pwc-gray-500"}`}>신규 회사 등록</button>
+              <button onClick={() => setAddToExisting(true)} className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${addToExisting ? "border-pwc-orange text-pwc-orange" : "border-transparent text-pwc-gray-500"}`}>기존 회사에 자회사 추가</button>
+            </div>
+            {!addToExisting ? (
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-pwc-gray-700 mb-1">회사명 <span className="text-red-500">*</span></label>
+                  <input type="text" value={newCoName} onChange={(e) => setNewCoName(e.target.value)} placeholder="회사명 입력" className="input-field" autoFocus />
+                </div>
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-sm font-medium text-pwc-gray-700">자회사(대상법인)</label>
+                    <button type="button" onClick={() => setNewSubs((p) => [...p, ""])} className="text-xs text-pwc-orange hover:underline">+ 추가</button>
+                  </div>
+                  {newSubs.map((s, i) => (
+                    <div key={i} className="flex gap-2 mb-2">
+                      <input type="text" value={s} onChange={(e) => setNewSubs((p) => p.map((x, j) => j === i ? e.target.value : x))} placeholder={`자회사 ${i + 1}`} className="input-field flex-1 text-sm" />
+                      {newSubs.length > 1 && <button onClick={() => setNewSubs((p) => p.filter((_, j) => j !== i))} className="text-red-400 hover:text-red-600 px-1">✕</button>}
+                    </div>
+                  ))}
+                  <p className="text-xs text-pwc-gray-400">자회사 없이 회사만 등록할 수도 있습니다.</p>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-pwc-gray-700 mb-1">소속 회사 <span className="text-red-500">*</span></label>
+                  <select value={existingCoId} onChange={(e) => setExistingCoId(Number(e.target.value))} className="input-field">
+                    <option value={0}>회사 선택</option>
+                    {companies.map((c) => (<option key={c.id} value={c.id}>{c.name} ({c.subsidiaries.length}개)</option>))}
+                  </select>
+                  {existingCoId > 0 && (() => {
+                    const co = companies.find((c) => c.id === existingCoId);
+                    return co && co.subsidiaries.length > 0 ? (
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {co.subsidiaries.map((s) => (<span key={s.id} className="text-xs bg-pwc-gray-100 text-pwc-gray-600 px-2 py-0.5 rounded">{s.name}</span>))}
+                      </div>
+                    ) : null;
+                  })()}
+                </div>
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-sm font-medium text-pwc-gray-700">추가할 자회사</label>
+                    <button type="button" onClick={() => setNewSubs((p) => [...p, ""])} className="text-xs text-pwc-orange hover:underline">+ 추가</button>
+                  </div>
+                  {newSubs.map((s, i) => (
+                    <div key={i} className="flex gap-2 mb-2">
+                      <input type="text" value={s} onChange={(e) => setNewSubs((p) => p.map((x, j) => j === i ? e.target.value : x))} placeholder={`자회사 ${i + 1}`} className="input-field flex-1 text-sm" />
+                      {newSubs.length > 1 && <button onClick={() => setNewSubs((p) => p.filter((_, j) => j !== i))} className="text-red-400 hover:text-red-600 px-1">✕</button>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            <div className="flex justify-end gap-2 mt-6">
+              <button onClick={() => setShowNewCompany(false)} className="text-sm px-4 py-2 rounded border border-pwc-gray-300 text-pwc-gray-700 hover:bg-pwc-gray-50">취소</button>
+              <button onClick={saveCompanyModal} disabled={coSaving} className="btn-primary">{coSaving ? "등록 중..." : "등록"}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 역할/정책 안내 팝업 */}
+      {showRoleInfo && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center">
+          <div className="fixed inset-0 bg-black/50" onClick={() => setShowRoleInfo(false)} />
+          <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-lg mx-4 max-h-[80vh] overflow-hidden flex flex-col">
+            <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between flex-shrink-0">
+              <h2 className="text-lg font-semibold text-pwc-black">역할 및 정책 안내</h2>
+              <button onClick={() => setShowRoleInfo(false)} className="text-gray-400 hover:text-gray-600">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            <div className="overflow-y-auto flex-1 p-6 space-y-6">
+              <div>
+                <h3 className="text-sm font-semibold text-pwc-orange mb-3">역할 분류</h3>
+                <table className="w-full text-sm table-fixed">
+                  <thead><tr className="border-b-2 border-pwc-orange"><th className="text-left py-2 w-[80px]">역할</th><th className="text-left py-2 w-[100px]">대상</th><th className="text-left py-2">설명</th></tr></thead>
+                  <tbody>
+                    <tr className="border-b border-gray-100"><td className="py-2"><span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">PwC</span></td><td className="py-2 text-gray-600">@pwc.com</td><td className="py-2 text-gray-600">PwC 내부 임직원. 관리자 권한 포함.</td></tr>
+                    <tr className="border-b border-gray-100"><td className="py-2"><span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">User</span></td><td className="py-2 text-gray-600">고객사</td><td className="py-2 text-gray-600">고객사 사용자. 리포트 열람 및 요청 가능.</td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-pwc-orange mb-3">상태 정의</h3>
+                <table className="w-full text-sm table-fixed">
+                  <thead><tr className="border-b-2 border-pwc-orange"><th className="text-left py-2 w-[80px]">상태</th><th className="text-left py-2">설명</th></tr></thead>
+                  <tbody>
+                    <tr className="border-b border-gray-100"><td className="py-2"><span className="badge-active">활성</span></td><td className="py-2 text-gray-600">정상 사용 가능한 계정</td></tr>
+                    <tr className="border-b border-gray-100"><td className="py-2"><span className="badge-inactive">비활성</span></td><td className="py-2 text-gray-600">관리자에 의해 비활성화된 계정</td></tr>
+                    <tr className="border-b border-gray-100"><td className="py-2"><span className="badge-pending">대기</span></td><td className="py-2 text-gray-600">승인 대기 중인 신규 계정</td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-pwc-orange mb-3">도메인 규칙</h3>
+                <div className="bg-gray-50 rounded-lg p-3 text-sm text-gray-600 space-y-1">
+                  <p>• <b>PwC 역할</b>은 <b>@pwc.com</b> 도메인 이메일만 설정 가능합니다.</p>
+                  <p>• 비 pwc.com 이메일에 PwC 역할이 설정된 경우 <span className="text-yellow-600">⚠</span> 경고가 표시됩니다.</p>
+                  <p>• 역할/상태 변경 시 변경 알림 이메일이 자동 발송됩니다.</p>
+                </div>
+              </div>
+            </div>
+            <div className="px-6 py-3 border-t border-gray-200 flex justify-end flex-shrink-0">
+              <button onClick={() => setShowRoleInfo(false)} className="btn-primary text-sm">확인</button>
             </div>
           </div>
         </div>

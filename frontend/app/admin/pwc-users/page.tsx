@@ -13,13 +13,13 @@ interface PwcUser {
   last_login: string | null;
 }
 
-const roleBadge = (role: string) => {
-  const map: Record<string, string> = {
-    admin: "bg-red-100 text-red-700",
-    manager: "bg-blue-100 text-blue-700",
-    viewer: "bg-gray-100 text-gray-600",
+const roleDisplay = (role: string) => {
+  const map: Record<string, { label: string; cls: string }> = {
+    admin: { label: "PwC", cls: "bg-red-100 text-red-700" },
+    manager: { label: "PwC", cls: "bg-blue-100 text-blue-700" },
+    viewer: { label: "User", cls: "bg-gray-100 text-gray-600" },
   };
-  return map[role] || "bg-gray-100 text-gray-600";
+  return map[role] || { label: role, cls: "bg-gray-100 text-gray-600" };
 };
 
 export default function PwcUsersPage() {
@@ -129,7 +129,7 @@ export default function PwcUsersPage() {
                       </div>
                     </td>
                     <td className="py-3 px-4">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${roleBadge(user.role)}`}>{user.role}</span>
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${roleDisplay(user.role).cls}`}>{roleDisplay(user.role).label}</span>
                     </td>
                     <td className="py-3 px-4 text-pwc-gray-500">{user.last_login?.slice(0, 16) || "-"}</td>
                     <td className="py-3 px-4">
@@ -159,9 +159,9 @@ export default function PwcUsersPage() {
               <div>
                 <label className="block text-sm font-medium text-pwc-gray-700 mb-1">역할</label>
                 <select value={editRole} onChange={(e) => setEditRole(e.target.value)} className="input-field">
-                  <option value="admin">admin</option>
-                  <option value="manager">manager</option>
-                  <option value="viewer">viewer</option>
+                  <option value="admin">PwC (Full Access)</option>
+                  <option value="manager">PwC (Standard)</option>
+                  <option value="viewer">User (View Only)</option>
                 </select>
               </div>
             </div>
