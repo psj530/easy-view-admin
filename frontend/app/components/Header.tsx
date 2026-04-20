@@ -31,25 +31,31 @@ export default function Header() {
 
   return (
     <header className="bg-white text-pwc-black h-14 flex items-center px-6 sticky top-0 z-50 border-b border-pwc-gray-200">
-      {/* PwC Logo + Easy View */}
-      <Link href="/" className="flex items-center mr-6 gap-2">
-        <svg width="52" height="28" viewBox="0 0 52 28" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <text x="0" y="22" fill="#d04a02" fontSize="22" fontWeight="bold" fontFamily="Georgia, serif" letterSpacing="-1">pwc</text>
-        </svg>
-        <span className="text-pwc-gray-300 text-lg font-light">|</span>
-        <span className="text-base font-semibold text-pwc-black tracking-tight">Easy View</span>
+      {/* PwC Logo */}
+      <Link href="/" className="flex-shrink-0 mr-2">
+        <span style={{ fontFamily: "Georgia, 'Times New Roman', serif", fontSize: "24px", fontWeight: "bold", color: "#d04a02", letterSpacing: "-1px" }}>
+          pwc
+        </span>
+      </Link>
+
+      {/* Separator */}
+      <div className="w-px h-6 bg-pwc-gray-300 mx-3 flex-shrink-0" />
+
+      {/* Easy View Title */}
+      <Link href="/" className="flex-shrink-0 mr-8">
+        <span className="text-[15px] font-bold text-pwc-black tracking-tight">Easy View</span>
       </Link>
 
       {/* Navigation */}
-      <nav className="flex items-center gap-0 flex-1">
+      <nav className="flex items-center gap-1 flex-1">
         {navItems.map((item) => (
           <Link
             key={item.label}
             href={item.href}
-            className={`px-4 py-2 text-sm transition-colors rounded ${
+            className={`px-4 py-1.5 text-[13px] rounded transition-colors ${
               item.active
                 ? "bg-pwc-black text-white font-medium"
-                : "text-pwc-gray-600 hover:text-pwc-black hover:bg-pwc-gray-50"
+                : "text-pwc-gray-600 hover:text-pwc-black"
             }`}
           >
             {item.label}
@@ -59,21 +65,24 @@ export default function Header() {
 
       {/* Right side */}
       {isAuthenticated && user ? (
-        <div className="flex items-center gap-3">
-          {/* 관리자 표시 */}
+        <div className="flex items-center gap-4 flex-shrink-0">
+          {/* 관리자 드롭다운 */}
           <div className="relative" ref={dropdownRef}>
             <button
               onClick={() => setDropdownOpen(!dropdownOpen)}
-              className="flex items-center gap-2 hover:bg-pwc-gray-50 rounded px-2 py-1.5 transition-colors"
+              className="text-[13px] font-medium text-pwc-black hover:text-pwc-orange transition-colors"
             >
-              <span className="text-sm font-medium text-pwc-black">{displayName}</span>
+              {displayName}
             </button>
 
             {dropdownOpen && (
-              <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-pwc-gray-200 py-1 text-pwc-black">
+              <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-pwc-gray-200 py-1 text-pwc-black z-50">
                 <div className="px-4 py-3 border-b border-pwc-gray-200">
                   <p className="text-sm font-medium">{displayName}</p>
                   <p className="text-xs text-pwc-gray-500">{user.email}</p>
+                  {user.role === "admin" && (
+                    <span className="inline-block mt-1 text-[10px] bg-pwc-orange text-white px-1.5 py-0.5 rounded">PwC Internal</span>
+                  )}
                 </div>
                 <Link href="/admin" className="block px-4 py-2 text-sm hover:bg-pwc-gray-50 transition-colors" onClick={() => setDropdownOpen(false)}>
                   Admin Portal
@@ -88,18 +97,18 @@ export default function Header() {
           </div>
 
           {/* 소속 표시 */}
-          <span className="text-sm text-pwc-gray-500">{companyLabel}</span>
+          <span className="text-[13px] text-pwc-gray-500">{companyLabel}</span>
 
           {/* 로그아웃 버튼 */}
           <button
             onClick={logout}
-            className="text-sm text-pwc-gray-600 border border-pwc-gray-300 rounded px-3 py-1 hover:bg-pwc-gray-50 transition-colors"
+            className="text-[13px] text-pwc-gray-600 border border-pwc-gray-300 rounded px-3 py-1 hover:bg-pwc-gray-50 transition-colors"
           >
             로그아웃
           </button>
         </div>
       ) : (
-        <Link href="/login" className="text-sm text-pwc-gray-600 border border-pwc-gray-300 rounded px-3 py-1 hover:bg-pwc-gray-50 transition-colors">
+        <Link href="/login" className="text-[13px] text-pwc-gray-600 border border-pwc-gray-300 rounded px-3 py-1 hover:bg-pwc-gray-50 transition-colors">
           로그인
         </Link>
       )}
