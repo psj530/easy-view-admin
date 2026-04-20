@@ -13,10 +13,18 @@ const reportPages = [
 
 const allReportPages = reportPages.flatMap((c) => c.pages);
 
+// 표시용 컬럼 (PDF/Excel/인쇄 → 추출로 통합)
+const displayColumns = [
+  { key: "can_view_report", label: "리포트 전체", tooltip: "모든 리포트 페이지에 접근할 수 있습니다. 해제 시 페이지별 개별 설정이 필요합니다." },
+  { key: "can_upload", label: "업로드", tooltip: "자료실에 파일을 업로드할 수 있습니다." },
+  { key: "can_export", label: "추출", tooltip: "PDF 다운로드, Excel 내보내기, 인쇄 기능이 포함됩니다.", merged: ["can_pdf", "can_excel", "can_print"] },
+  { key: "can_share", label: "공유", tooltip: "리포트를 다른 사용자에게 공유할 수 있습니다." },
+  { key: "can_comment", label: "코멘트", tooltip: "리포트에 코멘트를 작성할 수 있습니다." },
+  { key: "can_request_user", label: "사용자 요청", tooltip: "새로운 사용자 추가를 신청할 수 있습니다." },
+] as const;
+
+// DB 필드 (실제 저장용)
 const detailFields = ["can_view_report", "can_upload", "can_pdf", "can_excel", "can_print", "can_share", "can_comment", "can_request_user"] as const;
-const detailLabels: Record<string, string> = {
-  can_view_report: "리포트 전체", can_upload: "업로드", can_pdf: "PDF", can_excel: "Excel", can_print: "인쇄", can_share: "공유", can_comment: "코멘트", can_request_user: "사용자 요청",
-};
 
 interface MatrixPerm {
   id: number; report_name: string; role: string;
@@ -39,6 +47,7 @@ export default function PermissionsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [notifyUsers, setNotifyUsers] = useState(true);
+  const [showRoleInfo, setShowRoleInfo] = useState(false);
   const [userSearch, setUserSearch] = useState("");
   const [userCompanyFilter, setUserCompanyFilter] = useState("전체");
 
@@ -191,17 +200,24 @@ export default function PermissionsPage() {
 
           <div className="card overflow-hidden p-0">
             <div className="px-6 py-4 border-b border-pwc-gray-200 bg-pwc-gray-50">
-              <h3 className="font-semibold text-pwc-black">사용자별 상세 기능 권한</h3>
-              <p className="text-xs text-pwc-gray-500 mt-1">&quot;리포트 전체&quot;가 해제된 사용자는 [페이지 설정] 버튼으로 접근 가능한 페이지를 개별 설정할 수 있습니다.</p>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-semibold text-pwc-black">사용자별 상세 기능 권한</h3>
+                  <p className="text-xs text-pwc-gray-500 mt-1">&quot;리포트 전체&quot;가 해제된 사용자는 [페이지 설정] 버튼으로 접근 가능한 페이지를 개별 설정할 수 있습니다.</p>
+                </div>
+                <button onClick={() => setShowRoleInfo(true)} className="flex-shrink-0 text-xs text-pwc-orange border border-pwc-orange rounded px-2 py-1 hover:bg-pwc-orange hover:text-white transition-colors">
+                  권한 정의 보기
+                </button>
+              </div>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-pwc-gray-200">
                     <th className="text-left py-3 px-6 font-medium text-pwc-gray-500 min-w-[150px]">사용자</th>
-                    {detailFields.map((f) => (
-                      <th key={f} className="py-3 px-3 font-medium text-pwc-gray-500 text-center min-w-[70px]">
-                        {detailLabels[f]}
+                    {displayColumns.map((col) => (
+                      <th key={col.key} className="py-3 px-3 font-medium text-pwc-gray-500 text-center min-w-[70px]">
+                        {col.label}
                       </th>
                     ))}
                     <th className="py-3 px-3 font-medium text-pwc-gray-500 text-center min-w-[90px]">페이지 설정</th>
@@ -218,12 +234,28 @@ export default function PermissionsPage() {
                             <p className="text-xs text-pwc-gray-500">{up.user_email}</p>
                           </div>
                         </td>
-                        {detailFields.map((field) => (
-                          <td key={field} className="py-3 px-3 text-center">
-                            <input type="checkbox" checked={!!up[field]} onChange={() => toggleUser(up.user_id, field)}
-                              className="w-4 h-4 rounded border-pwc-gray-300 text-pwc-orange focus:ring-pwc-orange cursor-pointer" />
-                          </td>
-                        ))}
+                        {displayColumns.map((col) => {
+                          if ("merged" in col && col.merged) {
+                            // 통합 컬럼 (추출 = PDF + Excel + 인쇄)
+                            const allChecked = col.merged.every((f) => !!(up as unknown as Record<string, boolean>)[f]);
+                            const toggleMerged = () => {
+                              col.merged.forEach((f) => toggleUser(up.user_id, f as typeof detailFields[number]));
+                            };
+                            return (
+                              <td key={col.key} className="py-3 px-3 text-center">
+                                <input type="checkbox" checked={allChecked} onChange={toggleMerged}
+                                  className="w-4 h-4 rounded border-pwc-gray-300 text-pwc-orange focus:ring-pwc-orange cursor-pointer" />
+                              </td>
+                            );
+                          }
+                          const field = col.key as typeof detailFields[number];
+                          return (
+                            <td key={col.key} className="py-3 px-3 text-center">
+                              <input type="checkbox" checked={!!(up as unknown as Record<string, boolean>)[field]} onChange={() => toggleUser(up.user_id, field)}
+                                className="w-4 h-4 rounded border-pwc-gray-300 text-pwc-orange focus:ring-pwc-orange cursor-pointer" />
+                            </td>
+                          );
+                        })}
                         <td className="py-3 px-3 text-center">
                           {up.can_view_report ? (
                             <span className="text-xs text-green-600">전체 허용</span>
@@ -339,6 +371,53 @@ export default function PermissionsPage() {
                 {allReportPages.filter((p) => pagePermsMap[popupUser.user_id]?.[p]).length} / {allReportPages.length} 페이지 허용
               </span>
               <button onClick={() => setPopupUser(null)} className="btn-primary">확인</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* 역할 정의 팝업 */}
+      {showRoleInfo && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center">
+          <div className="fixed inset-0 bg-black/50" onClick={() => setShowRoleInfo(false)} />
+          <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-xl mx-4">
+            <div className="px-6 py-4 border-b border-pwc-gray-200 flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-pwc-black">권한 정의</h2>
+              <button onClick={() => setShowRoleInfo(false)} className="text-pwc-gray-400 hover:text-pwc-gray-600">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            <div className="p-6">
+              <table className="w-full text-sm table-fixed">
+                <thead>
+                  <tr className="border-b-2 border-pwc-orange">
+                    <th className="text-left py-3 pr-4 font-semibold text-pwc-black w-[80px]">권한</th>
+                    <th className="text-left py-3 px-4 font-semibold text-pwc-black w-[160px]">설명</th>
+                    <th className="text-left py-3 pl-4 font-semibold text-pwc-black">포함 기능</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[
+                    { name: "리포트 전체", desc: "모든 리포트 페이지 접근", detail: "손익·재무상태·전표·시나리오분석 전체" },
+                    { name: "업로드", desc: "자료실 파일 업로드", detail: "Excel, PDF, CSV 등 업로드" },
+                    { name: "추출", desc: "데이터 내보내기", detail: "PDF 다운로드, Excel, 인쇄" },
+                    { name: "공유", desc: "리포트 공유", detail: "URL 공유, 이메일 전송" },
+                    { name: "코멘트", desc: "코멘트 작성", detail: "작성, 답글, 멘션" },
+                    { name: "사용자 요청", desc: "사용자 추가 신청", detail: "신청서 작성 및 제출" },
+                  ].map((r) => (
+                    <tr key={r.name} className="border-b border-pwc-gray-100">
+                      <td className="py-3 pr-4 font-medium text-pwc-orange whitespace-nowrap">{r.name}</td>
+                      <td className="py-3 px-4 text-pwc-gray-700">{r.desc}</td>
+                      <td className="py-3 pl-4 text-pwc-gray-500 text-xs">{r.detail}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <div className="mt-5 p-3 bg-pwc-gray-50 rounded-lg text-xs text-pwc-gray-600 leading-relaxed">
+                <strong>페이지 설정 안내</strong> — &quot;리포트 전체&quot; 활성 시 모든 페이지 접근 가능. 비활성 시 [설정] 버튼으로 개별 페이지를 지정할 수 있습니다.
+              </div>
+            </div>
+            <div className="px-6 py-4 border-t border-pwc-gray-200 flex justify-end">
+              <button onClick={() => setShowRoleInfo(false)} className="btn-primary">확인</button>
             </div>
           </div>
         </div>

@@ -133,25 +133,50 @@ def seed_data(force=False):
     db.add_all(logs)
     db.flush()
 
-    # 회사
-    companies = [
-        Company(id=1, name="PwC"),
-        Company(id=2, name="SeAH"),
-        Company(id=3, name="POSCO"),
+    # 회사 (50개)
+    company_names = [
+        "PwC", "삼일회계법인", "SeAH", "POSCO", "삼성전자", "SK하이닉스", "LG에너지솔루션", "현대자동차",
+        "기아", "NAVER", "카카오", "셀트리온", "삼성바이오로직스", "KB금융", "신한금융",
+        "하나금융", "우리금융", "삼성SDI", "LG화학", "현대모비스", "삼성물산", "SK이노베이션",
+        "포스코케미칼", "한국전력", "KT", "SK텔레콤", "LG전자", "현대건설", "삼성엔지니어링",
+        "SK건설", "대한항공", "아시아나항공", "CJ제일제당", "롯데케미칼", "한화솔루션",
+        "두산에너빌리티", "GS칼텍스", "S-Oil", "한국가스공사", "한국석유공사",
+        "현대제철", "동국제강", "고려아연", "LS", "효성", "한솔케미칼",
+        "OCI", "금호석유화학", "태광산업", "코오롱인더스트리",
     ]
-    db.add_all(companies)
+    for i, name in enumerate(company_names):
+        db.add(Company(id=i + 1, name=name))
     db.flush()
 
-    # 자회사
-    subs = [
-        Subsidiary(name="SeAH 경영관리팀", company_id=2),
-        Subsidiary(name="SeAH 재무팀", company_id=2),
-        Subsidiary(name="SeAH 인사팀", company_id=2),
-        Subsidiary(name="POSCO 기획팀", company_id=3),
-        Subsidiary(name="POSCO 분석팀", company_id=3),
-        Subsidiary(name="POSCO 재무팀", company_id=3),
-    ]
-    db.add_all(subs)
+    # 자회사 (약 80개 - 주요 회사에 1~3개씩)
+    sub_data = {
+        1: ["Assurance", "Tax", "Advisory", "Consulting"],
+        2: ["삼일 감사본부", "삼일 세무본부", "삼일 딜즈본부"],
+        3: ["SeAH 경영관리팀", "SeAH 재무팀", "SeAH 인사팀"],
+        4: ["POSCO 기획팀", "POSCO 분석팀", "POSCO 재무팀", "POSCO ICT"],
+        5: ["삼성전자 DS", "삼성전자 DX", "삼성전자 SDC", "삼성전자 Harman"],
+        6: ["SK하이닉스 NAND", "SK하이닉스 DRAM"],
+        7: ["LG에너지솔루션 배터리", "LG에너지솔루션 ESS"],
+        8: ["현대차 국내사업", "현대차 해외사업", "현대차 전동화"],
+        9: ["기아 국내영업", "기아 해외영업"],
+        10: ["NAVER Cloud", "NAVER Webtoon", "NAVER Financial"],
+        11: ["카카오엔터프라이즈", "카카오뱅크", "카카오페이"],
+        12: ["셀트리온헬스케어", "셀트리온제약"],
+        14: ["KB국민은행", "KB증권", "KB손해보험"],
+        15: ["신한은행", "신한카드", "신한투자증권"],
+        16: ["하나은행", "하나증권"],
+        17: ["우리은행", "우리카드"],
+        18: ["삼성SDI 소형전지", "삼성SDI 중대형전지"],
+        19: ["LG화학 첨단소재", "LG화학 석유화학"],
+        21: ["삼성물산 건설부문", "삼성물산 상사부문"],
+        23: ["포스코케미칼 양극재", "포스코케미칼 음극재"],
+        27: ["LG전자 H&A", "LG전자 HE", "LG전자 VS"],
+        33: ["CJ제일제당 식품", "CJ제일제당 바이오"],
+        35: ["한화솔루션 케미칼", "한화솔루션 큐셀"],
+    }
+    for company_id, sub_names in sub_data.items():
+        for name in sub_names:
+            db.add(Subsidiary(name=name, company_id=company_id))
     db.flush()
 
     # 역할

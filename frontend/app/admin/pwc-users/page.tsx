@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { usersApi } from "../../lib/api";
+import { showToast } from "../../components/Toast";
 
 interface PwcUser {
   id: number;
@@ -26,6 +27,21 @@ export default function PwcUsersPage() {
   const [users, setUsers] = useState<PwcUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedUsers, setSelectedUsers] = useState<number[]>([]);
+  const [editUser, setEditUser] = useState<PwcUser | null>(null);
+  const [editRole, setEditRole] = useState("");
+  const [editSaving, setEditSaving] = useState(false);
+
+  const openEdit = (user: PwcUser) => { setEditUser(user); setEditRole(user.role); };
+  const saveEdit = async () => {
+    if (!editUser) return;
+    setEditSaving(true);
+    try {
+      await usersApi.update(editUser.id, { role: editRole });
+      showToast(`${editUser.name}님의 역할이 ${editRole}로 변경되었습니다.`, "success");
+      setEditUser(null); await fetchUsers();
+    } catch (e: unknown) { showToast(e instanceof Error ? e.message : "실패", "error"); }
+    finally { setEditSaving(false); }
+  };
 
   const fetchUsers = useCallback(async () => {
     setLoading(true);
@@ -117,7 +133,7 @@ export default function PwcUsersPage() {
                     </td>
                     <td className="py-3 px-4 text-pwc-gray-500">{user.last_login?.slice(0, 16) || "-"}</td>
                     <td className="py-3 px-4">
-                      <button className="text-xs bg-pwc-gray-100 text-pwc-gray-700 px-3 py-1.5 rounded hover:bg-pwc-gray-200 transition-colors">편집</button>
+                      <button onClick={() => openEdit(user)} className="text-xs bg-pwc-gray-100 text-pwc-gray-700 px-3 py-1.5 rounded hover:bg-pwc-gray-200 transition-colors">편집</button>
                     </td>
                   </tr>
                 ))}
@@ -129,6 +145,33 @@ export default function PwcUsersPage() {
           )}
         </div>
       </div>
+      {/* 수정 모달 */}
+      {editUser && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setEditUser(null)} />
+          <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-sm mx-4 p-6">
+            <h2 className="text-lg font-semibold text-pwc-black mb-4">PwC 사용자 편집</h2>
+            <div className="space-y-4">
+              <div>
+                <p className="text-sm text-pwc-gray-700 font-medium">{editUser.name}</p>
+                <p className="text-xs text-pwc-gray-500">{editUser.email}</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-pwc-gray-700 mb-1">역할</label>
+                <select value={editRole} onChange={(e) => setEditRole(e.target.value)} className="input-field">
+                  <option value="admin">admin</option>
+                  <option value="manager">manager</option>
+                  <option value="viewer">viewer</option>
+                </select>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 mt-6">
+              <button onClick={() => setEditUser(null)} className="text-sm px-4 py-2 rounded border border-pwc-gray-300 text-pwc-gray-700 hover:bg-pwc-gray-50">취소</button>
+              <button onClick={saveEdit} disabled={editSaving} className="btn-primary">{editSaving ? "저장 중..." : "저장"}</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
