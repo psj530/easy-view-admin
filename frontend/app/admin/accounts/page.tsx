@@ -18,7 +18,10 @@ interface Group {
 }
 
 const statusOptions = ["전체", "active", "inactive", "pending"];
-const roleOptions = ["전체", "admin", "manager", "viewer"];
+const roleOptions = ["전체", "PwC", "User"];
+const roleMap: Record<string, string> = { "PwC": "admin", "User": "viewer" };
+const roleMapReverse: Record<string, string> = { admin: "PwC", manager: "PwC", viewer: "User" };
+const roleLabel = (role: string) => roleMapReverse[role] || role;
 
 export default function AccountsPage() {
   const [users, setUsers] = useState<User[]>([]);
@@ -33,19 +36,10 @@ export default function AccountsPage() {
   const [selectedUsers, setSelectedUsers] = useState<number[]>([]);
   const [summary, setSummary] = useState({ total: 0, active: 0, inactive: 0, pending: 0, expiring_passwords: 0 });
 
-  // 회사/그룹
+  // 회사/그룹 (소속 표시용)
   const [companies, setCompanies] = useState<Company[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
-  const [showCompanySection, setShowCompanySection] = useState(false);
-  const [showCompanyModal, setShowCompanyModal] = useState(false);
-  const [newCompanyName, setNewCompanyName] = useState("");
-  const [newSubsidiaries, setNewSubsidiaries] = useState<string[]>([""]);
-  const [showSubModal, setShowSubModal] = useState(false);
-  const [subForm, setSubForm] = useState({ name: "", company_id: 0 });
-  const [companySaving, setCompanySaving] = useState(false);
-  // 선택된 자회사 필터
   const [selectedSub, setSelectedSub] = useState<string | null>(null);
-  const [companySearchTerm, setCompanySearchTerm] = useState("");
 
   // 수정 모달
   const [editUser, setEditUser] = useState<User | null>(null);
@@ -70,51 +64,14 @@ export default function AccountsPage() {
     } catch { /* */ }
   }, []);
 
-  const createCompany = async () => {
-    if (!newCompanyName.trim()) { showToast("회사명을 입력하세요.", "warning"); return; }
-    setCompanySaving(true);
-    try {
-      const res = await companiesApi.create({ name: newCompanyName });
-      const subs = newSubsidiaries.filter((s) => s.trim());
-      for (const s of subs) await companiesApi.createSubsidiary({ name: s.trim(), company_id: res.id });
-      showToast(`"${newCompanyName}" 생성 완료`, "success");
-      setNewCompanyName(""); setNewSubsidiaries([""]); setShowCompanyModal(false);
-      await loadCompanies();
-      companiesApi.names().then((r) => setCompanyOptions(["전체", ...(r.names || [])])).catch(() => {});
-    } catch (e) { showToast(e instanceof Error ? e.message : "실패", "error"); }
-    finally { setCompanySaving(false); }
-  };
-
-  const createSub = async () => {
-    if (!subForm.name.trim() || !subForm.company_id) { showToast("자회사명과 회사를 선택하세요.", "warning"); return; }
-    setCompanySaving(true);
-    try {
-      await companiesApi.createSubsidiary(subForm);
-      showToast(`"${subForm.name}" 생성 완료`, "success");
-      setSubForm({ name: "", company_id: 0 }); setShowSubModal(false);
-      await loadCompanies();
-    } catch (e) { showToast(e instanceof Error ? e.message : "실패", "error"); }
-    finally { setCompanySaving(false); }
-  };
-
-  // 자회사 클릭 시 회사 필터 적용
-  const selectSub = (companyName: string, subName: string) => {
-    if (selectedSub === subName) {
-      setSelectedSub(null);
-      setCompanyFilter("전체");
-    } else {
-      setSelectedSub(subName);
-      setCompanyFilter(companyName);
-    }
-  };
-
   const fetchUsers = useCallback(async () => {
     try {
       setLoading(true);
       const params: Record<string, string> = {};
       if (search) params.search = search;
       if (statusFilter !== "전체") params.status = statusFilter;
-      if (roleFilter !== "전체") params.role = roleFilter;
+      if (roleFilter === "PwC") params.role = "admin";
+      else if (roleFilter === "User") params.role = "viewer";
       if (companyFilter !== "전체") params.company = companyFilter;
       const data = await usersApi.list(Object.keys(params).length > 0 ? params : undefined);
       setUsers(data.users ?? []);
@@ -237,77 +194,6 @@ export default function AccountsPage() {
         </div>
       )}
 
-      {/* 회사/자회사 관리 (상단) */}
-      {(() => {
-        const fc = companies.filter((c) =>
-          !companySearchTerm ||
-          c.name.toLowerCase().includes(companySearchTerm.toLowerCase()) ||
-          c.subsidiaries.some((s) => s.name.toLowerCase().includes(companySearchTerm.toLowerCase()))
-        );
-        return (
-          <div className="card">
-            <button onClick={() => setShowCompanySection(!showCompanySection)} className="flex items-center justify-between w-full">
-              <h3 className="font-semibold text-pwc-black">회사/자회사 관리</h3>
-              <div className="flex items-center gap-2">
-                {selectedSub && <span className="text-xs bg-pwc-orange text-white px-2 py-0.5 rounded">{selectedSub}</span>}
-                <span className="text-xs text-pwc-gray-400">{companies.length}개 회사</span>
-                <svg className={`w-5 h-5 text-pwc-gray-400 transition-transform ${showCompanySection ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </div>
-            </button>
-
-            {showCompanySection && (
-              <div className="mt-4 space-y-3">
-                {/* 검색 + 버튼 */}
-                <div className="flex items-center gap-2">
-                  <input type="text" value={companySearchTerm} onChange={(e) => setCompanySearchTerm(e.target.value)}
-                    placeholder="회사 또는 자회사 검색..." className="input-field flex-1 max-w-xs text-sm" />
-                  <button onClick={() => { setNewCompanyName(""); setNewSubsidiaries([""]); setShowCompanyModal(true); }} className="btn-secondary text-xs">+ 회사</button>
-                  <button onClick={() => { setSubForm({ name: "", company_id: 0 }); setShowSubModal(true); }} className="btn-primary text-xs">+ 자회사</button>
-                  {selectedSub && (
-                    <button onClick={() => { setSelectedSub(null); setCompanyFilter("전체"); }} className="text-xs text-red-500 hover:underline">필터 해제</button>
-                  )}
-                </div>
-
-                {/* 회사 목록 (스크롤) */}
-                <div className="max-h-[320px] overflow-y-auto space-y-2 pr-1">
-                  {fc.map((c) => (
-                    <div key={c.id} className="border border-pwc-gray-200 rounded-lg px-4 py-3">
-                      <div className="flex items-center gap-3 flex-wrap">
-                        <button onClick={() => selectSub(c.name, c.name)}
-                          className={`text-sm font-semibold transition-colors flex-shrink-0 ${selectedSub === c.name ? "text-pwc-orange" : "text-pwc-black hover:text-pwc-orange"}`}>
-                          {c.name}
-                        </button>
-                        {c.subsidiaries.length > 0 && (
-                          <div className="flex flex-wrap gap-1">
-                            {c.subsidiaries
-                              .filter((s) => !companySearchTerm || s.name.toLowerCase().includes(companySearchTerm.toLowerCase()) || c.name.toLowerCase().includes(companySearchTerm.toLowerCase()))
-                              .map((s) => (
-                              <button key={s.id} onClick={() => selectSub(c.name, s.name)}
-                                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs transition-colors ${
-                                  selectedSub === s.name
-                                    ? "bg-pwc-orange text-white"
-                                    : "bg-pwc-gray-100 text-pwc-gray-600 hover:bg-pwc-orange hover:text-white"
-                                }`}>
-                                {s.name}
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                        {c.subsidiaries.length === 0 && <span className="text-xs text-pwc-gray-400">자회사 없음</span>}
-                      </div>
-                    </div>
-                  ))}
-                  {fc.length === 0 && <p className="text-sm text-pwc-gray-400 text-center py-4">검색 결과가 없습니다.</p>}
-                </div>
-                <p className="text-xs text-pwc-gray-400">{fc.length}개 회사 표시 / 전체 {companies.length}개</p>
-              </div>
-            )}
-          </div>
-        );
-      })()}
-
       {/* 검색/필터 */}
       <div className="card">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -371,7 +257,10 @@ export default function AccountsPage() {
                     </td>
                     <td className="py-3 px-4">
                       <div>
-                        <p className="text-pwc-gray-700">{user.company}</p>
+                        <button onClick={() => { setCompanyFilter(user.company); setSelectedSub(null); }}
+                          className="text-pwc-gray-700 hover:text-pwc-orange transition-colors text-left">
+                          {user.company}
+                        </button>
                         {(() => {
                           const c = companies.find((x) => x.name === user.company);
                           const g = groups.find((x) => x.id === user.group_id);
@@ -380,7 +269,14 @@ export default function AccountsPage() {
                         })()}
                       </div>
                     </td>
-                    <td className="py-3 px-4"><span className="badge-role">{user.role}</span></td>
+                    <td className="py-3 px-4">
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${roleLabel(user.role) === "PwC" ? "bg-red-100 text-red-700" : "bg-blue-100 text-blue-700"}`}>
+                        {roleLabel(user.role)}
+                      </span>
+                      {roleLabel(user.role) === "PwC" && !user.email.endsWith("@pwc.com") && (
+                        <span className="ml-1 text-yellow-600 text-[10px]" title="PwC 도메인(@pwc.com)이 아닙니다">⚠</span>
+                      )}
+                    </td>
                     <td className="py-3 px-4">{statusBadge(user.status)}</td>
                     <td className="py-3 px-4 text-xs text-pwc-gray-500">{user.last_login?.slice(0, 16) || "-"}</td>
                     <td className="py-3 px-4">
@@ -421,7 +317,7 @@ export default function AccountsPage() {
                 </select>
               </div>
               <div className="grid grid-cols-2 gap-4">
-                <div><label className="block text-sm font-medium text-pwc-gray-700 mb-1">역할</label><select value={editForm.role} onChange={(e) => setEditForm({ ...editForm, role: e.target.value })} className="input-field"><option value="admin">admin</option><option value="manager">manager</option><option value="viewer">viewer</option></select></div>
+                <div><label className="block text-sm font-medium text-pwc-gray-700 mb-1">역할</label><select value={editForm.role} onChange={(e) => setEditForm({ ...editForm, role: e.target.value })} className="input-field"><option value="admin">PwC</option><option value="viewer">User</option></select></div>
                 <div><label className="block text-sm font-medium text-pwc-gray-700 mb-1">상태</label><select value={editForm.status} onChange={(e) => setEditForm({ ...editForm, status: e.target.value })} className="input-field"><option value="active">활성</option><option value="inactive">비활성</option><option value="pending">대기</option></select></div>
               </div>
               <div className="flex items-center justify-between pt-2 border-t border-pwc-gray-200">
@@ -451,9 +347,8 @@ export default function AccountsPage() {
                 <label className="block text-sm font-medium text-pwc-gray-700 mb-1">역할</label>
                 <select value={bulkForm.role} onChange={(e) => setBulkForm({ ...bulkForm, role: e.target.value })} className="input-field">
                   <option value="">변경 안 함</option>
-                  <option value="admin">admin</option>
-                  <option value="manager">manager</option>
-                  <option value="viewer">viewer</option>
+                  <option value="admin">PwC</option>
+                  <option value="viewer">User</option>
                 </select>
               </div>
               <div>
@@ -482,55 +377,6 @@ export default function AccountsPage() {
             <div className="flex justify-end gap-2 mt-6">
               <button onClick={() => setShowBulkModal(false)} className="text-sm px-4 py-2 rounded border border-pwc-gray-300 text-pwc-gray-700 hover:bg-pwc-gray-50">취소</button>
               <button onClick={saveBulk} disabled={bulkSaving} className="btn-primary">{bulkSaving ? "변경 중..." : `${selectedUsers.length}명 일괄 변경`}</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 회사 생성 모달 */}
-      {showCompanyModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/50" onClick={() => setShowCompanyModal(false)} />
-          <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 p-6">
-            <h2 className="text-lg font-semibold text-pwc-black mb-4">회사 생성</h2>
-            <div className="space-y-4">
-              <div><label className="block text-sm font-medium text-pwc-gray-700 mb-1">회사명 *</label><input type="text" value={newCompanyName} onChange={(e) => setNewCompanyName(e.target.value)} placeholder="회사명" className="input-field" /></div>
-              <div>
-                <div className="flex items-center justify-between mb-2"><label className="text-sm font-medium text-pwc-gray-700">자회사(대상법인)</label><button type="button" onClick={() => setNewSubsidiaries((p) => [...p, ""])} className="text-xs text-pwc-orange hover:underline">+ 추가</button></div>
-                {newSubsidiaries.map((s, i) => (
-                  <div key={i} className="flex gap-2 mb-2">
-                    <input type="text" value={s} onChange={(e) => setNewSubsidiaries((p) => p.map((x, j) => j === i ? e.target.value : x))} placeholder={`자회사 ${i + 1}`} className="input-field flex-1" />
-                    {newSubsidiaries.length > 1 && <button onClick={() => setNewSubsidiaries((p) => p.filter((_, j) => j !== i))} className="text-red-500 px-2">✕</button>}
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div className="flex justify-end gap-2 mt-6">
-              <button onClick={() => setShowCompanyModal(false)} className="text-sm px-4 py-2 rounded border border-pwc-gray-300 text-pwc-gray-700 hover:bg-pwc-gray-50">취소</button>
-              <button onClick={createCompany} disabled={companySaving} className="btn-primary">{companySaving ? "생성 중..." : "생성"}</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 자회사 추가 모달 */}
-      {showSubModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/50" onClick={() => setShowSubModal(false)} />
-          <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-sm mx-4 p-6">
-            <h2 className="text-lg font-semibold text-pwc-black mb-4">자회사 추가</h2>
-            <div className="space-y-4">
-              <div><label className="block text-sm font-medium text-pwc-gray-700 mb-1">소속 회사</label>
-                <select value={subForm.company_id} onChange={(e) => setSubForm({ ...subForm, company_id: Number(e.target.value) })} className="input-field">
-                  <option value={0}>선택하세요</option>
-                  {companies.map((c) => (<option key={c.id} value={c.id}>{c.name}</option>))}
-                </select>
-              </div>
-              <div><label className="block text-sm font-medium text-pwc-gray-700 mb-1">자회사명</label><input type="text" value={subForm.name} onChange={(e) => setSubForm({ ...subForm, name: e.target.value })} placeholder="자회사명" className="input-field" /></div>
-            </div>
-            <div className="flex justify-end gap-2 mt-6">
-              <button onClick={() => setShowSubModal(false)} className="text-sm px-4 py-2 rounded border border-pwc-gray-300 text-pwc-gray-700 hover:bg-pwc-gray-50">취소</button>
-              <button onClick={createSub} disabled={companySaving} className="btn-primary">{companySaving ? "생성 중..." : "생성"}</button>
             </div>
           </div>
         </div>
