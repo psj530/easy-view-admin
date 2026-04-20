@@ -17,6 +17,12 @@ class Settings(BaseSettings):
     SSO_CLIENT_ID: str = ""
     SSO_CLIENT_SECRET: str = ""
 
+    # 이메일 설정 (Gmail SMTP)
+    SMTP_HOST: str = "smtp.gmail.com"
+    SMTP_PORT: int = 587
+    SMTP_USER: str = ""  # Gmail 주소
+    SMTP_PASSWORD: str = ""  # Gmail 앱 비밀번호
+
     @property
     def cors_origins_list(self) -> List[str]:
         return [origin.strip() for origin in self.CORS_ORIGINS.split(",")]

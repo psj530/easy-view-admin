@@ -8,6 +8,7 @@ from models.user import User
 from models.audit import AuditLog
 from schemas.user import UserCreate, UserUpdate, UserResponse, UserListResponse
 from auth_utils import hash_password, get_current_user
+from email_service import send_welcome_email, send_permission_change_email
 
 router = APIRouter(prefix="/api/users", tags=["사용자 관리"])
 
@@ -67,6 +68,8 @@ async def create_user(
     db.add(AuditLog(actor=current_user.name, action_type="사용자 생성", detail=f"{user.name} ({user.email}) 사용자 생성", target=user.name))
     db.commit()
     db.refresh(new_user)
+    # Welcome 이메일 발송
+    send_welcome_email(user.email, user.name, user.password or "temp1234!")
     return _user_to_response(new_user)
 
 
@@ -86,12 +89,22 @@ async def update_user(user_id: int, user_update: UserUpdate, db: Session = Depen
     if not user:
         raise HTTPException(status_code=404, detail="사용자를 찾을 수 없습니다.")
 
+    old_role = user.role
+    old_status = user.status
     update_data = user_update.model_dump(exclude_unset=True)
     for key, value in update_data.items():
         setattr(user, key, value)
     db.add(AuditLog(actor=current_user.name, action_type="사용자 수정", detail=f"{user.name} 사용자 정보 수정", target=user.name))
     db.commit()
     db.refresh(user)
+    # 역할/상태 변경 시 알림 메일
+    changes = []
+    if old_role != user.role:
+        changes.append(f"역할: {old_role} → {user.role}")
+    if old_status != user.status:
+        changes.append(f"상태: {old_status} → {user.status}")
+    if changes:
+        send_permission_change_email(user.email, user.name, ", ".join(changes))
     return _user_to_response(user)
 
 
