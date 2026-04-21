@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { usersApi } from "../../lib/api";
 import { showToast } from "../../components/Toast";
+import { downloadCSV } from "../../lib/export";
 
 interface PwcUser {
   id: number;
@@ -77,9 +78,15 @@ export default function PwcUsersPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-pwc-black">PwC 내부 사용자</h1>
-        <p className="text-sm text-pwc-gray-500 mt-1">PwC 내부 사용자 목록과 역할을 관리합니다.</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-pwc-black">PwC 내부 사용자</h1>
+          <p className="text-sm text-pwc-gray-500 mt-1">PwC 내부 사용자 목록과 역할을 관리합니다.</p>
+        </div>
+        <button onClick={() => downloadCSV(users as unknown as Record<string, unknown>[], [
+          { key: "name", label: "이름" }, { key: "email", label: "이메일" },
+          { key: "role", label: "역할" }, { key: "last_login", label: "최종 접속" },
+        ], "PwC_내부사용자")} className="btn-secondary text-sm">엑셀 추출</button>
       </div>
 
       <div className="flex gap-2">

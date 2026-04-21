@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { auditApi } from "../../lib/api";
+import { downloadCSV } from "../../lib/export";
 
 interface LogEntry {
   id: number;
@@ -72,9 +73,16 @@ export default function LogsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-pwc-black">로그/방문이력</h1>
-        <p className="text-sm text-pwc-gray-500 mt-1">시스템 접근 기록과 주요 변경 이력을 확인합니다.</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-pwc-black">로그/방문이력</h1>
+          <p className="text-sm text-pwc-gray-500 mt-1">시스템 접근 기록과 주요 변경 이력을 확인합니다.</p>
+        </div>
+        <button onClick={() => downloadCSV(logs as unknown as Record<string, unknown>[], [
+          { key: "timestamp", label: "일시" }, { key: "actor", label: "수행자" },
+          { key: "action_type", label: "유형" }, { key: "detail", label: "상세" },
+          { key: "target", label: "대상" }, { key: "ip_address", label: "IP" },
+        ], "활동로그")} className="btn-secondary text-sm">엑셀 추출</button>
       </div>
 
       {/* Filter */}

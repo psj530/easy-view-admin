@@ -5,6 +5,8 @@ import UserRegistrationModal from "../../components/UserRegistrationModal";
 import { showToast } from "../../components/Toast";
 import { usersApi, companiesApi, securityApi, groupsApi } from "../../lib/api";
 import InfoPopup from "../../components/InfoPopup";
+import BulkUploadModal from "../../components/BulkUploadModal";
+import { downloadCSV } from "../../lib/export";
 
 interface User {
   id: number; name: string; email: string; company: string; group_id: number | null;
@@ -48,6 +50,7 @@ export default function AccountsPage() {
   const [editSaving, setEditSaving] = useState(false);
   const [notifyUser, setNotifyUser] = useState(true);
   const [showRoleInfo, setShowRoleInfo] = useState(false);
+  const [showBulkUpload, setShowBulkUpload] = useState(false);
   // 회사/자회사 등록 (통합 모달)
   const [showNewCompany, setShowNewCompany] = useState(false);
   const [addToExisting, setAddToExisting] = useState(false);
@@ -227,8 +230,13 @@ export default function AccountsPage() {
           <p className="text-sm text-pwc-gray-500 mt-1">사용자 계정, 보안 상태, 비밀번호 정책을 통합 관리합니다.</p>
         </div>
         <div className="flex gap-2">
-          <button onClick={() => setShowPolicy(!showPolicy)} className="btn-secondary text-sm">{showPolicy ? "정책 닫기" : "비밀번호 정책"}</button>
+          <button onClick={() => downloadCSV(users as unknown as Record<string, unknown>[], [
+            { key: "name", label: "이름" }, { key: "email", label: "이메일" }, { key: "company", label: "회사" },
+            { key: "role", label: "역할" }, { key: "status", label: "상태" }, { key: "last_login", label: "최종 로그인" },
+          ], "계정목록")} className="btn-secondary text-sm">엑셀 추출</button>
+          <button onClick={() => setShowPolicy(!showPolicy)} className="btn-secondary text-sm">비밀번호 정책</button>
           <button onClick={() => { setShowNewCompany(true); setNewCoName(""); setNewSubs([""]); setAddToExisting(false); setExistingCoId(0); }} className="btn-secondary text-sm">+ 회사/자회사</button>
+          <button onClick={() => setShowBulkUpload(true)} className="btn-secondary text-sm">일괄 등록</button>
           <button onClick={() => setModalOpen(true)} className="btn-primary">+ 사용자 등록</button>
         </div>
       </div>
@@ -618,6 +626,7 @@ export default function AccountsPage() {
       )}
 
       <UserRegistrationModal isOpen={modalOpen} onClose={() => { setModalOpen(false); fetchUsers(); loadSecurity(); loadCompanies(); }} />
+      <BulkUploadModal isOpen={showBulkUpload} onClose={() => { setShowBulkUpload(false); fetchUsers(); loadSecurity(); }} />
     </div>
   );
 }
