@@ -7,8 +7,9 @@ import { useAuth } from "../lib/auth";
 
 const navItems = [
   { label: "서비스 소개", href: "/" },
-  { label: "리포트", href: "/admin" },
-  { label: "자료실", href: "/admin/data-request" },
+  { label: "리포트", href: "#" },
+  { label: "자료실", href: "#" },
+  { label: "Administration", href: "/admin", adminOnly: true },
 ];
 
 export default function Header() {
@@ -30,8 +31,7 @@ export default function Header() {
   const isAdmin = user?.role === "admin";
 
   const isActive = (href: string) => {
-    if (href === "/admin") return pathname?.startsWith("/admin") && !pathname?.startsWith("/admin/data-request");
-    if (href === "/admin/data-request") return pathname === "/admin/data-request";
+    if (href === "/admin") return pathname?.startsWith("/admin");
     if (href === "/") return pathname === "/";
     return false;
   };
@@ -55,7 +55,7 @@ export default function Header() {
 
         {/* hdr-tabs */}
         <nav style={{ display: "flex", alignItems: "center", gap: 32, flex: 1, height: "100%" }}>
-          {navItems.map((item) => {
+          {navItems.filter((item) => !("adminOnly" in item && item.adminOnly) || isAdmin).map((item) => {
             const active = isActive(item.href);
             return (
               <Link
