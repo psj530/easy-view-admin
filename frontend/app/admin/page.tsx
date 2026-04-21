@@ -55,13 +55,16 @@ export default function AdminDashboard() {
       {/* 요약 카드 */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label: "전체 사용자", value: stats.total, color: "text-pwc-black", border: "border-l-4 border-l-pwc-orange" },
-          { label: "활성 사용자", value: stats.active, color: "text-green-600", border: "border-l-4 border-l-green-500" },
-          { label: "고객사", value: stats.companies, color: "text-purple-600", border: "border-l-4 border-l-purple-500" },
-          { label: "전체 활동 로그", value: auditStats.total_logs, color: "text-yellow-600", border: "border-l-4 border-l-yellow-500" },
+          { label: "전체 사용자", value: stats.total, color: "text-pwc-black", dot: "bg-pwc-orange" },
+          { label: "활성 사용자", value: stats.active, color: "text-green-600", dot: "bg-green-500" },
+          { label: "고객사", value: stats.companies, color: "text-purple-600", dot: "bg-purple-500" },
+          { label: "전체 활동 로그", value: auditStats.total_logs, color: "text-yellow-600", dot: "bg-yellow-500" },
         ].map((card) => (
-          <div key={card.label} className={`card ${card.border}`}>
-            <p className="text-xs text-pwc-gray-500 mb-1">{card.label}</p>
+          <div key={card.label} className="card">
+            <div className="flex items-center gap-2 mb-1">
+              <span className={`w-2 h-2 rounded-full ${card.dot}`} />
+              <p className="text-xs text-pwc-gray-500">{card.label}</p>
+            </div>
             <p className={`text-3xl font-bold ${card.color}`}>{card.value}</p>
           </div>
         ))}
