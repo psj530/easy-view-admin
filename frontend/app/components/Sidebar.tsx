@@ -24,10 +24,20 @@ const sidebarItems = [
   },
   {
     label: "Site Details",
-    href: "/admin",
+    href: "#",
     icon: (
       <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75" />
+      </svg>
+    ),
+  },
+  {
+    label: "Administration",
+    href: "/admin",
+    icon: (
+      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
       </svg>
     ),
     children: [
@@ -45,36 +55,41 @@ const sidebarItems = [
 export default function Sidebar() {
   const pathname = usePathname();
 
+  const isAdminPage = pathname?.startsWith("/admin");
+
   return (
     <aside className="w-56 bg-white border-r border-[#e8e8e8] flex-shrink-0 sticky top-[50px] h-[calc(100vh-50px)] overflow-y-auto">
       <nav className="py-4">
         {sidebarItems.map((item) => {
+          const hasChildren = "children" in item && item.children;
           const isActive = item.href !== "#" && (
             pathname === item.href ||
             (item.href !== "/admin" && pathname.startsWith(item.href))
           );
-          const hasChildren = "children" in item && item.children;
           const childActive = hasChildren && item.children.some((c) =>
             pathname === c.href || (c.href !== "/admin" && pathname.startsWith(c.href))
           );
+          const isExpanded = hasChildren && (childActive || isAdminPage);
 
           return (
             <div key={item.label}>
               <Link
-                href={item.href}
-                className={`flex items-center gap-3 px-5 py-3 text-[13px] transition-colors ${
-                  isActive || childActive
-                    ? "text-pwc-orange font-semibold bg-orange-50 border-l-3 border-l-pwc-orange"
-                    : "text-[#555] hover:bg-gray-50"
-                }`}
-                style={isActive || childActive ? { borderLeft: "3px solid #d04a02" } : { borderLeft: "3px solid transparent" }}
+                href={hasChildren ? (item.children[0]?.href || item.href) : item.href}
+                className={`flex items-center gap-3 px-5 py-3 text-[13px] transition-colors`}
+                style={{
+                  borderLeft: (isActive && !hasChildren) || (hasChildren && isExpanded) ? "3px solid #d04a02" : "3px solid transparent",
+                  color: (isActive && !hasChildren) || (hasChildren && isExpanded) ? "#d04a02" : "#555",
+                  fontWeight: (isActive && !hasChildren) || (hasChildren && isExpanded) ? 600 : 400,
+                  backgroundColor: (isActive && !hasChildren) || (hasChildren && isExpanded) ? "#fff7ed" : "transparent",
+                }}
               >
-                <span className={isActive || childActive ? "text-pwc-orange" : "text-[#999]"}>{item.icon}</span>
+                <span style={{ color: (isActive && !hasChildren) || (hasChildren && isExpanded) ? "#d04a02" : "#999" }}>
+                  {item.icon}
+                </span>
                 {item.label}
               </Link>
 
-              {/* Children (Site Details 하위 메뉴) */}
-              {hasChildren && (childActive || pathname === "/admin") && (
+              {hasChildren && isExpanded && (
                 <div className="ml-8 border-l border-[#e8e8e8]">
                   {item.children.map((child) => {
                     const cActive = pathname === child.href ||
@@ -83,11 +98,17 @@ export default function Sidebar() {
                       <Link
                         key={child.href}
                         href={child.href}
-                        className={`block px-4 py-2 text-[12px] transition-colors ${
-                          cActive
-                            ? "text-pwc-orange font-medium"
-                            : "text-[#888] hover:text-[#555]"
-                        }`}
+                        style={{
+                          display: "block",
+                          padding: "8px 16px",
+                          fontSize: 12,
+                          color: cActive ? "#d04a02" : "#888",
+                          fontWeight: cActive ? 600 : 400,
+                          textDecoration: "none",
+                          transition: "color 0.15s",
+                        }}
+                        onMouseEnter={(e) => { if (!cActive) e.currentTarget.style.color = "#555"; }}
+                        onMouseLeave={(e) => { if (!cActive) e.currentTarget.style.color = "#888"; }}
                       >
                         {child.label}
                       </Link>
