@@ -14,6 +14,7 @@ interface PreviewUser {
   email: string;
   name: string;
   company: string;
+  subsidiary: string;
   role: string;
   status: "ready" | "success" | "error";
   message?: string;
@@ -42,6 +43,7 @@ export default function BulkUploadModal({ isOpen, onClose }: BulkUploadModalProp
         email: row["이메일"] || row["email"] || "",
         name: row["이름"] || row["name"] || "",
         company: row["회사"] || row["company"] || "",
+        subsidiary: row["자회사"] || row["subsidiary"] || "",
         role: (row["역할"] || row["role"] || "viewer").toLowerCase(),
         status: "ready" as const,
       })).filter((u) => u.email && u.name);
@@ -89,8 +91,8 @@ export default function BulkUploadModal({ isOpen, onClose }: BulkUploadModalProp
 
   const downloadTemplate = () => {
     downloadCSV(
-      [{ 이메일: "user@company.com", 이름: "홍길동", 회사: "SeAH", 역할: "User" }],
-      [{ key: "이메일", label: "이메일" }, { key: "이름", label: "이름" }, { key: "회사", label: "회사" }, { key: "역할", label: "역할" }],
+      [{ 이메일: "user@company.com", 이름: "홍길동", 회사: "SeAH", 자회사: "SeAH 경영관리팀", 역할: "User" }],
+      [{ key: "이메일", label: "이메일" }, { key: "이름", label: "이름" }, { key: "회사", label: "회사" }, { key: "자회사", label: "자회사" }, { key: "역할", label: "역할" }],
       "사용자_등록_템플릿"
     );
   };
@@ -126,7 +128,7 @@ export default function BulkUploadModal({ isOpen, onClose }: BulkUploadModalProp
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                 </svg>
                 <p className="text-sm text-pwc-gray-600 mb-2">CSV 파일을 업로드하세요</p>
-                <p className="text-xs text-pwc-gray-400 mb-4">열: 이메일, 이름, 회사, 역할(PwC/User)</p>
+                <p className="text-xs text-pwc-gray-400 mb-4">열: 이메일, 이름, 회사, 자회사, 역할(PwC/User)</p>
                 <div className="flex justify-center gap-3">
                   <label className="btn-primary text-sm cursor-pointer">
                     파일 선택
@@ -137,7 +139,7 @@ export default function BulkUploadModal({ isOpen, onClose }: BulkUploadModalProp
               </div>
               <div className="bg-pwc-gray-50 rounded-lg p-4 text-xs text-pwc-gray-600 space-y-1">
                 <p className="font-medium text-pwc-black">CSV 파일 형식 안내</p>
-                <p>• 첫 번째 행: 헤더 (이메일, 이름, 회사, 역할)</p>
+                <p>• 첫 번째 행: 헤더 (이메일, 이름, 회사, 자회사, 역할)</p>
                 <p>• 역할: PwC (@pwc.com만 가능) 또는 User</p>
                 <p>• 임시 비밀번호 <b>temp1234!</b>가 자동 설정됩니다</p>
               </div>
@@ -157,6 +159,7 @@ export default function BulkUploadModal({ isOpen, onClose }: BulkUploadModalProp
                       <th className="text-left py-2 px-3 font-medium text-pwc-gray-500">이메일</th>
                       <th className="text-left py-2 px-3 font-medium text-pwc-gray-500">이름</th>
                       <th className="text-left py-2 px-3 font-medium text-pwc-gray-500">회사</th>
+                      <th className="text-left py-2 px-3 font-medium text-pwc-gray-500">자회사</th>
                       <th className="text-left py-2 px-3 font-medium text-pwc-gray-500">역할</th>
                       <th className="py-2 px-2 w-8"></th>
                     </tr>
@@ -167,6 +170,7 @@ export default function BulkUploadModal({ isOpen, onClose }: BulkUploadModalProp
                         <td className="py-2 px-3 text-pwc-gray-700">{u.email}</td>
                         <td className="py-2 px-3 text-pwc-gray-700">{u.name}</td>
                         <td className="py-2 px-3 text-pwc-gray-700">{u.company}</td>
+                        <td className="py-2 px-3 text-pwc-gray-500 text-xs">{u.subsidiary || "-"}</td>
                         <td className="py-2 px-3">
                           <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${u.role === "pwc" ? "bg-red-100 text-red-700" : "bg-blue-100 text-blue-700"}`}>
                             {u.role === "pwc" ? "PwC" : "User"}

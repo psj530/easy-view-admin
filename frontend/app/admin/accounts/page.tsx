@@ -230,10 +230,22 @@ export default function AccountsPage() {
           <p className="text-sm text-pwc-gray-500 mt-1">사용자 계정, 보안 상태, 비밀번호 정책을 통합 관리합니다.</p>
         </div>
         <div className="flex gap-2">
-          <button onClick={() => downloadCSV(users as unknown as Record<string, unknown>[], [
-            { key: "name", label: "이름" }, { key: "email", label: "이메일" }, { key: "company", label: "회사" },
-            { key: "role", label: "역할" }, { key: "status", label: "상태" }, { key: "last_login", label: "최종 로그인" },
-          ], "계정목록")} className="btn-secondary text-sm">엑셀 추출</button>
+          <button onClick={() => {
+            const exportData = users.map((u) => {
+              const co = companies.find((c) => c.name === u.company);
+              const g = groups.find((x) => x.id === u.group_id);
+              const subName = g?.name || co?.subsidiaries.find((s) => s.id === u.group_id)?.name || "";
+              return {
+                이름: u.name, 이메일: u.email, 회사: u.company, 자회사: subName,
+                역할: roleLabel(u.role), 상태: u.status === "active" ? "활성" : u.status === "inactive" ? "비활성" : "대기",
+                최종로그인: u.last_login ? u.last_login.slice(0, 16).replace("T", " ") : "",
+              };
+            });
+            downloadCSV(exportData, [
+              { key: "이름", label: "이름" }, { key: "이메일", label: "이메일" }, { key: "회사", label: "회사" }, { key: "자회사", label: "자회사" },
+              { key: "역할", label: "역할" }, { key: "상태", label: "상태" }, { key: "최종로그인", label: "최종 로그인" },
+            ], "계정목록");
+          }} className="btn-secondary text-sm">엑셀 추출</button>
           <button onClick={() => setShowPolicy(!showPolicy)} className="btn-secondary text-sm">비밀번호 정책</button>
           <button onClick={() => { setShowNewCompany(true); setNewCoName(""); setNewSubs([""]); setAddToExisting(false); setExistingCoId(0); }} className="btn-secondary text-sm">+ 회사/자회사</button>
           <button onClick={() => setShowBulkUpload(true)} className="btn-secondary text-sm">일괄 등록</button>
